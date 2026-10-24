@@ -3,9 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>mir.ai — Realtime WebRTC Virtual Try-On Studio</title>
+  <title>mir.ai — Virtual Try-On</title>
   <link rel="stylesheet" href="style.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✨</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <script type="importmap">
   {
     "imports": {
@@ -15,324 +18,211 @@
   </script>
 </head>
 <body>
-  <!-- Header Navigation -->
-  <header>
-    <div class="brand-wrapper">
-      <div class="logo-badge">✦</div>
-      <div class="brand-title">
-        <span>mir.ai</span>
-        <span class="model-pill" id="model-pill-badge">lucy-vton-3.6</span>
+
+  <!-- ═══ FULL-SCREEN VIDEO CANVAS ═══ -->
+  <div class="canvas" id="stage-viewport">
+
+    <!-- Model Output Stream -->
+    <video id="video-output" autoplay playsinline></video>
+
+    <!-- Standby State -->
+    <div class="standby" id="stage-placeholder">
+      <div class="standby-inner">
+        <span class="standby-wordmark">mir.ai</span>
+        <p class="standby-hint">camera + ai try-on</p>
+        <button class="btn-go" id="btn-placeholder-start">start</button>
       </div>
     </div>
 
-    <div class="header-actions">
-      <!-- Status Badge -->
-      <div class="status-badge" id="status-badge">
-        <span class="status-dot idle" id="status-dot"></span>
-        <span id="status-text">Disconnected</span>
-      </div>
+    <!-- Local Webcam PiP -->
+    <div class="pip" id="pip-container">
+      <video id="video-local" autoplay playsinline muted></video>
+    </div>
 
-      <!-- Connect / Disconnect Toggle -->
-      <button class="btn-connect" id="btn-toggle-stream">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <!-- ═══ TOP-LEFT: Brand + Status ═══ -->
+    <div class="hud-tl">
+      <span class="wordmark">mir.ai</span>
+      <span class="status-dot" id="status-dot"></span>
+      <span class="status-label" id="status-text">offline</span>
+    </div>
+
+    <!-- ═══ TOP-RIGHT: Tiny Action Icons ═══ -->
+    <div class="hud-tr">
+      <button class="hud-btn" id="btn-toggle-stream" title="Connect / Disconnect">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
           <polygon points="5 3 19 12 5 21 5 3"></polygon>
         </svg>
-        <span id="btn-stream-label">Start Try-On</span>
       </button>
-
-      <!-- Settings Icon Button -->
-      <button class="btn-icon" id="btn-open-settings" title="Configuration & API Key">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <button class="hud-btn" id="btn-snapshot" title="Capture">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+        </svg>
+      </button>
+      <button class="hud-btn" id="btn-toggle-mirror" title="Mirror">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="16 3 21 3 21 8"></polyline>
+          <line x1="4" y1="20" x2="21" y2="3"></line>
+        </svg>
+      </button>
+      <button class="hud-btn" id="btn-open-settings" title="Settings">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="3"></circle>
           <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
         </svg>
       </button>
-
-      <!-- Logs / Diagnostic Drawer Button -->
-      <button class="btn-icon" id="btn-toggle-logs" title="WebRTC Diagnostics Log">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <button class="hud-btn" id="btn-toggle-logs" title="Logs">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="4 17 10 11 4 5"></polyline>
           <line x1="12" y1="19" x2="20" y2="19"></line>
         </svg>
       </button>
     </div>
-  </header>
 
-  <!-- Main Container -->
-  <main class="app-container">
-    <!-- Left Stage: Video Views -->
-    <section class="video-stage">
-      <div class="stage-viewport" id="stage-viewport">
-        <!-- Standby Placeholder -->
-        <div class="stage-placeholder" id="stage-placeholder">
-          <div class="placeholder-icon">
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M23 7l-7 5 7 5V7z"></path>
-              <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
-            </svg>
-          </div>
-          <h2 class="placeholder-title">WebRTC Live Virtual Try-On Ready</h2>
-          <p class="placeholder-subtitle">
-            Experience real-time AI clothing try-on via Decart Lucy VTON 3.5. Ensure camera access is enabled and click "Start Try-On".
-          </p>
-          <button class="btn-connect" id="btn-placeholder-start">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <polygon points="5 3 19 12 5 21 5 3"></polygon>
-            </svg>
-            Connect Camera & Start
-          </button>
+    <!-- ═══ LEFT SIDE: 3D Dress Catalogue Dock (Top to Bottom) ═══ -->
+    <aside class="catalog-dock" id="garment-rail" aria-label="3D Dress Catalogue">
+      <!-- New Photo Adding Option (Top, larger, realistic glassmorphic) -->
+      <button class="catalog-add-btn" id="btn-open-upload" title="add photo or custom garment" aria-label="add photo">
+        <div class="add-btn-glass">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
         </div>
+      </button>
 
-        <!-- Video Player Elements -->
-        <div class="video-container">
-          <!-- Transformed Output Stream from Decart WebRTC -->
-          <video id="video-output" autoplay playsinline></video>
+      <!-- Glass Divider -->
+      <div class="catalog-divider"></div>
 
-          <!-- Raw Local Webcam Stream (PiP or Split) -->
-          <div class="pip-container" id="pip-container">
-            <span class="pip-label">Live Webcam</span>
-            <video id="video-local" autoplay playsinline muted></video>
-          </div>
-        </div>
-
-        <!-- Active Outfit Pill Overlay -->
-        <div class="active-outfit-pill" id="active-outfit-pill">
-          <img src="/garments/bomber-jacket.png" class="active-outfit-thumb" id="active-outfit-thumb" alt="Active Garment">
-          <div class="active-outfit-info">
-            <span class="active-outfit-label">Currently Wearing</span>
-            <span class="active-outfit-title" id="active-outfit-title">Black Bomber Jacket</span>
-          </div>
-        </div>
-
-        <!-- Floating Stage Action Controls -->
-        <div class="stage-controls-overlay">
-          <!-- Snapshot / Photo Capture -->
-          <button class="stage-ctrl-btn" id="btn-snapshot" title="Capture & Download Snapshot">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-              <circle cx="12" cy="13" r="4"></circle>
-            </svg>
-          </button>
-
-          <!-- Toggle View Mode: PiP vs Side-by-Side -->
-          <button class="stage-ctrl-btn" id="btn-toggle-layout" title="Toggle Layout (PiP / Split View)">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="12" y1="3" x2="12" y2="21"></line>
-            </svg>
-          </button>
-
-          <!-- Mirror Toggle -->
-          <button class="stage-ctrl-btn active" id="btn-toggle-mirror" title="Toggle Camera Mirror">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="16 3 21 3 21 8"></polyline>
-              <line x1="4" y1="20" x2="21" y2="3"></line>
-              <polyline points="21 16 21 21 16 21"></polyline>
-              <line x1="15" y1="15" x2="21" y2="21"></line>
-              <line x1="4" y1="4" x2="9" y2="9"></line>
-            </svg>
-          </button>
-
-          <!-- Audio Mute Toggle -->
-          <button class="stage-ctrl-btn" id="btn-toggle-audio" title="Mute/Unmute Audio">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-              <line x1="23" y1="9" x2="17" y2="15"></line>
-              <line x1="17" y1="9" x2="23" y2="15"></line>
-            </svg>
-          </button>
-
-          <!-- Fullscreen Toggle -->
-          <button class="stage-ctrl-btn" id="btn-toggle-fullscreen" title="Fullscreen View">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      <!-- Telemetry Strip below Stage -->
-      <div class="stage-telemetry">
-        <div class="telemetry-item">
-          <span>Model:</span>
-          <span class="telemetry-value" id="telemetry-model">Lucy VTON 3.6 (720p)</span>
-        </div>
-        <div class="telemetry-item">
-          <span>Speed:</span>
-          <span class="telemetry-value" id="telemetry-speed">Fast Mode (2x)</span>
-        </div>
-        <div class="telemetry-item">
-          <span>Session:</span>
-          <span class="telemetry-value" id="telemetry-timer">00:00</span>
-        </div>
-        <div class="telemetry-item">
-          <span>WebRTC ICE:</span>
-          <span class="telemetry-value" id="telemetry-ice">new</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- Right Sidebar: Garment Wardrobe & Controller -->
-    <aside class="wardrobe-sidebar">
-      <!-- Preset Wardrobe Grid -->
-      <div class="sidebar-card">
-        <div class="card-title-row">
-          <h3 class="card-title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M20.38 3.46L16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"></path>
-            </svg>
-            Preset Wardrobe
-          </h3>
-          <span style="font-size: 11px; color: var(--text-muted);">1-Click Switch</span>
-        </div>
-
-        <div class="presets-grid" id="presets-grid">
-          <!-- Populated dynamically via JS -->
-        </div>
-      </div>
-
-      <!-- Custom Garment Studio -->
-      <div class="sidebar-card">
-        <div class="card-title-row">
-          <h3 class="card-title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 20h9"></path>
-              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-            </svg>
-            Custom Garment Studio
-          </h3>
-        </div>
-
-        <div class="custom-garment-box">
-          <!-- Upload Area -->
-          <div class="upload-dropzone" id="upload-dropzone">
-            <input type="file" id="file-input" accept="image/*" style="display: none;">
-            <div class="dropzone-content" id="dropzone-content">
-              <div class="dropzone-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="17 8 12 3 7 8"></polyline>
-                  <line x1="12" y1="3" x2="12" y2="15"></line>
-                </svg>
-              </div>
-              <span class="dropzone-label">Drop garment photo here</span>
-              <span class="dropzone-hint">or click to browse local image</span>
-            </div>
-          </div>
-
-          <!-- Preview of Uploaded Garment -->
-          <div class="custom-preview-wrap" id="custom-preview-wrap" style="display: none;">
-            <img id="custom-preview-img" class="custom-preview-img" alt="Custom Preview">
-            <button class="btn-remove-preview" id="btn-remove-preview" title="Remove">&times;</button>
-          </div>
-
-          <!-- Prompt Description Input -->
-          <div class="input-field-group">
-            <label class="field-label" for="custom-prompt">Garment Prompt Description</label>
-            <textarea id="custom-prompt" class="prompt-textarea" placeholder="e.g. Wearing an oversized black leather jacket with silver zipper and buckle"></textarea>
-          </div>
-
-          <!-- Quick Modifier Chips -->
-          <div class="prompt-chips">
-            <button class="chip-btn" data-add="with gold watch">+ Gold Watch</button>
-            <button class="chip-btn" data-add="with black sunglasses">+ Sunglasses</button>
-            <button class="chip-btn" data-add="with silver chain necklace">+ Chain</button>
-            <button class="chip-btn" data-add="sleeves rolled up">+ Rolled Sleeves</button>
-          </div>
-
-          <!-- Apply Button -->
-          <button class="btn-apply-custom" id="btn-apply-custom">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-            Apply to Live Stream (set)
-          </button>
-        </div>
+      <!-- Scrollable 3D Dress Asset Cards (Top to Bottom) -->
+      <div class="catalog-scroll" id="presets-grid">
+        <!-- Dynamically populated 3D asset cards without full text names -->
       </div>
     </aside>
-  </main>
 
-  <!-- Settings Modal Dialog -->
+    <!-- Currently Wearing Pill (Bottom Center) -->
+    <div class="active-outfit-pill" id="active-outfit-pill">
+      <img src="/garments/red-silk-dress.jpg" class="active-outfit-thumb" id="active-outfit-thumb" alt="">
+      <span class="active-outfit-title" id="active-outfit-title">crimson silk gown</span>
+    </div>
+
+    <!-- ═══ BOTTOM-RIGHT: Session timer (tiny) ═══ -->
+    <div class="hud-br">
+      <span class="timer-label" id="telemetry-timer">00:00</span>
+    </div>
+
+  </div><!-- /.canvas -->
+
+
+  <!-- ═══ CUSTOM UPLOAD PANEL (slides up from bottom) ═══ -->
+  <div class="upload-panel" id="upload-panel">
+    <div class="upload-panel-inner">
+      <div class="upload-panel-header">
+        <span>upload garment</span>
+        <button class="hud-btn" id="btn-close-upload">&times;</button>
+      </div>
+
+      <!-- Dropzone -->
+      <div class="upload-dropzone" id="upload-dropzone">
+        <input type="file" id="file-input" accept="image/*" style="display: none;">
+        <div class="dropzone-content" id="dropzone-content">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:.5">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          <span class="dropzone-label">drop image or click</span>
+        </div>
+      </div>
+
+      <!-- Preview -->
+      <div class="custom-preview-wrap" id="custom-preview-wrap" style="display: none;">
+        <img id="custom-preview-img" class="custom-preview-img" alt="">
+        <button class="btn-remove-preview" id="btn-remove-preview">&times;</button>
+      </div>
+
+      <!-- Prompt -->
+      <textarea id="custom-prompt" class="prompt-textarea" placeholder="describe the garment..."></textarea>
+
+      <!-- Apply -->
+      <button class="btn-apply" id="btn-apply-custom">apply</button>
+    </div>
+  </div>
+
+
+  <!-- ═══ SETTINGS MODAL ═══ -->
   <div class="modal-overlay" id="modal-settings">
-    <div class="modal-content">
+    <div class="modal-glass">
       <div class="modal-header">
-        <h3 class="modal-title">Decart Lucy VTON Settings</h3>
-        <button class="btn-icon" id="btn-close-settings">&times;</button>
+        <span>settings</span>
+        <button class="hud-btn" id="btn-close-settings">&times;</button>
       </div>
       <div class="modal-body">
-        <!-- API Key Input -->
-        <div class="input-field-group">
-          <label class="field-label" for="input-api-key">
-            Decart API Key / Client Token
-            <span style="font-weight: 400; color: var(--text-muted);">(Optional if set in .env)</span>
-          </label>
-          <input type="password" id="input-api-key" class="input-text" placeholder="dct_... or client token" autocomplete="off">
-          <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
-            Server backend token status: <strong id="server-key-status" style="color: var(--accent-cyan);">Checking...</strong>
-          </div>
+        <div class="field">
+          <label class="field-label" for="input-api-key">api key</label>
+          <input type="password" id="input-api-key" class="field-input" placeholder="dct_..." autocomplete="off">
+          <span class="field-hint" id="server-key-status">checking...</span>
         </div>
-
-        <!-- Fast Mode Toggle -->
-        <div class="form-toggle-row">
-          <div class="toggle-label-wrap">
-            <span class="toggle-title">Fast Mode (`speed: "fast"`)</span>
-            <span class="toggle-sub">2x throughput, lower latency (4 credits/sec)</span>
+        <div class="field-row">
+          <div class="field-row-label">
+            <span>fast mode</span>
+            <span class="field-hint">2× throughput</span>
           </div>
-          <label class="switch">
+          <label class="toggle">
             <input type="checkbox" id="toggle-fast-mode" checked>
-            <span class="slider"></span>
+            <span class="toggle-track"></span>
           </label>
         </div>
-
-        <!-- Camera Device Selection -->
-        <div class="input-field-group">
-          <label class="field-label" for="select-camera">Webcam Camera Input</label>
-          <select id="select-camera" class="input-text" style="cursor: pointer;">
-            <option value="">Default Front Camera</option>
+        <div class="field">
+          <label class="field-label" for="select-camera">camera</label>
+          <select id="select-camera" class="field-input">
+            <option value="">default</option>
           </select>
         </div>
-
-        <!-- Mirroring Mode -->
-        <div class="input-field-group">
-          <label class="field-label" for="select-mirror">Stream Mirroring</label>
-          <select id="select-mirror" class="input-text" style="cursor: pointer;">
-            <option value="auto">Auto (Default)</option>
-            <option value="always">Always Mirror</option>
-            <option value="never">Never Mirror</option>
+        <div class="field">
+          <label class="field-label" for="select-mirror">mirror</label>
+          <select id="select-mirror" class="field-input">
+            <option value="auto">auto</option>
+            <option value="always">always</option>
+            <option value="never">never</option>
           </select>
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn-secondary" id="btn-cancel-settings">Cancel</button>
-        <button class="btn-primary" id="btn-save-settings">Save Settings</button>
+        <button class="btn-ghost" id="btn-cancel-settings">cancel</button>
+        <button class="btn-apply" id="btn-save-settings">save</button>
       </div>
     </div>
   </div>
 
-  <!-- Realtime Diagnostics Drawer -->
+
+  <!-- ═══ LOGS DRAWER ═══ -->
   <div class="drawer" id="drawer-logs">
     <div class="drawer-header">
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <span class="status-dot live" style="width: 7px; height: 7px;"></span>
-        <span>WebRTC & SDK Diagnostics Log</span>
-      </div>
-      <div style="display: flex; gap: 6px;">
-        <button class="chip-btn" id="btn-clear-logs">Clear</button>
-        <button class="btn-icon" id="btn-close-logs" style="width: 26px; height: 26px;">&times;</button>
+      <span>diagnostics</span>
+      <div style="display:flex;gap:6px;">
+        <button class="hud-btn" id="btn-clear-logs" style="font-size:10px;width:auto;padding:0 8px;">clear</button>
+        <button class="hud-btn" id="btn-close-logs">&times;</button>
       </div>
     </div>
-    <div class="log-body" id="log-body">
-      <!-- Diagnostic entries rendered dynamically -->
-    </div>
+    <div class="log-body" id="log-body"></div>
   </div>
 
-  <!-- Toast Notification Container -->
+
+  <!-- Toast -->
   <div class="toast-container" id="toast-container"></div>
 
-  <!-- Hidden Canvas for Snapshot Capture -->
+  <!-- Hidden helpers -->
   <canvas id="snapshot-canvas" style="display: none;"></canvas>
 
-  <!-- Application Logic Module -->
-  <script type="module" src="app.js?v=5"></script>
+  <!-- Telemetry hidden spans for JS compatibility -->
+  <span id="telemetry-model" style="display:none;">Lucy VTON 3.6</span>
+  <span id="telemetry-speed" style="display:none;">Fast Mode (2x)</span>
+  <span id="telemetry-ice" style="display:none;">new</span>
+  <span id="model-pill-badge" style="display:none;">lucy-vton-3.6</span>
+
+  <!-- Keep old IDs alive for JS compat -->
+  <span id="btn-stream-label" style="display:none;">Start Try-On</span>
+
+  <script type="module" src="app.js?v=6"></script>
 </body>
 </html>
