@@ -23,6 +23,7 @@
 
 * 🚀 **Production URL**: [https://mir-ai-2g63.onrender.com/](https://mir-ai-2g63.onrender.com/) *(HTTPS active for instant camera access)*
 * 🎥 **Video Demo Walkthrough**: [Watch on Google Drive](https://drive.google.com/file/d/1ewP4kQpb6wuX07_5iydvyP4PF-rfX_N2/view?usp=sharing)
+* 📚 **Product & Technical Documentation**: [PRODUCT_DOCUMENTATION.md](./PRODUCT_DOCUMENTATION.md) *(Comprehensive architecture, sequence diagrams, mathematical derivations, API specs & runbooks)*
 
 ---
 
@@ -319,6 +320,7 @@ asyncio.run(main())
 
 ```
 mir.ai/
+├── PRODUCT_DOCUMENTATION.md # Comprehensive product, technical & mathematical docs
 ├── index.html              # Modern WebRTC try-on studio interface
 ├── app.js                  # Frontend client logic & WebRTC session manager
 ├── liquid-glass.js         # True Liquid Glass optical refraction & spring physics engine
@@ -364,6 +366,13 @@ mir.ai/
 - **Settings Modal (`⚙`)**: Configure API keys, toggle Fast Mode, switch between camera inputs, or adjust front-camera mirroring.
 - **Diagnostics Drawer (`>_`)**: Real-time event log tracking media constraints, ICE candidate negotiation, client token renewal timestamps, and SDK state changes.
 - **Snapshot Tool (`📷`)**: Instant canvas snapshot capture with automated watermarking and PNG download.
+
+---
+
+## 👥 Authors & Team
+
+* **Abhinav Varghese Abraham** ([@kaizen-abhinav](https://github.com/kaizen-abhinav))
+* **Christy Roy** ([@Christy-Roy-tech](https://github.com/Christy-Roy-tech))
 
 ---
 
