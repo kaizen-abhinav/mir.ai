@@ -1,3 +1,5 @@
+import { initLiquidGlass } from "./liquid-glass.js";
+
 /**
  * Decart.ai Lucy VTON 3.5 Realtime WebRTC Client
  */
@@ -1497,6 +1499,14 @@ async function bootstrap() {
   // 1. Immediately wire up all UI controls & event listeners (zero delay!)
   setupEventListeners();
   setupUploader();
+  
+  // Initialize Liquid Glass Engine on all buttons & controls
+  try {
+    initLiquidGlass();
+    console.log("[VTON] True Liquid Glass effect initialized on all buttons.");
+  } catch (err) {
+    console.warn("Liquid glass init error:", err);
+  }
   
   // 2. Immediately render presets
   await loadPresets();

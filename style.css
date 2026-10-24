@@ -1810,3 +1810,64 @@ input:checked + .toggle-track::before {
   font-weight: 600;
 }
 
+/* ════════════════════ TRUE LIQUID GLASS CORE ════════════════════ */
+
+.liquid-glass {
+  --lg-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --lg-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
+  --lg-glow-color: rgba(255, 255, 255, 0.28);
+  position: relative !important;
+  isolation: isolate;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: var(--lg-shadow) !important;
+  will-change: translate, scale;
+  transition: box-shadow 0.25s ease;
+}
+
+.liquid-glass:hover {
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45), 0 0 16px rgba(0, 242, 254, 0.25) !important;
+}
+
+/* 1. Refracting Lens Layer (Displacement & Tone Table) */
+.lg-lens {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  border-radius: inherit;
+  pointer-events: none;
+  transform-origin: 0 0;
+  background: rgba(12, 16, 26, 0.22);
+}
+
+/* 2. Specular Bezel & Rim Light Reflection Layer */
+.lg-overlay {
+  position: absolute;
+  inset: -2px;
+  z-index: -1;
+  pointer-events: none;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  transform-origin: 0 0;
+}
+
+/* 3. Pointer-Tracked Liquid Glow Layer */
+.lg-glow {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background-image: radial-gradient(
+    var(--lg-glow-size, 64px) circle at var(--lg-glow-x, 50%) var(--lg-glow-y, 50%),
+    color-mix(in srgb, var(--lg-glow-color, rgba(255, 255, 255, 0.28)) calc(var(--lg-glow, 0) * 100%), transparent),
+    transparent 65%
+  );
+}
+
+/* Keep inner button labels, SVGs, and text sharp above glass */
+.liquid-glass > :not(.lg-lens):not(.lg-overlay):not(.lg-glow) {
+  position: relative;
+  z-index: 1;
+}
+
