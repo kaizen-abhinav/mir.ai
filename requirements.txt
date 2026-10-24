@@ -1,0 +1,2 @@
+# mir.ai — Realtime WebRTC Virtual Try-On Studio
+# Backend runs using Python 3 built-in standard library
