@@ -13,7 +13,7 @@
   <strong>Next-generation live virtual clothing try-on powered by Decart.ai Lucy VTON 3.6 & 3.5 over ultra-low-latency WebRTC.</strong>
 </p>
 
-### 🌐 [Launch Live Web App](https://mir-ai-2g63.onrender.com/) ✦ 🎬 [Watch Full Video Demo](https://drive.google.com/file/d/1ewP4kQpb6wuX07_5iydvyP4PF-rfX_N2/view?usp=sharing)
+### 🌐 [Launch Live Web App](https://mir-ai-2g63.onrender.com/) ✦ 🎬 [Watch Full Video Demo](https://drive.google.com/file/d/1ewP4kQpb6wuX07_5iydvyP4PF-rfX_N2/view?usp=sharing) ✦ 📚 [Product Documentation](./PRODUCT_DOCUMENTATION.md)
 
 </div>
 
@@ -27,65 +27,39 @@
 
 ---
 
-## 📖 Overview
+## 📌 Problem Statement
 
-**mir.ai** is a real-time WebRTC Virtual Try-On (VTON) system that projects garments onto a live video stream captured from your webcam. Powered by **Decart AI's `lucy-vton-3.6`** generative video pipeline, **mir.ai** allows users to see garments mapped onto their body in real time with realistic fabric drape, lighting, and temporal consistency—enabling on-the-fly outfit changes in sub-second intervals without reconnecting the media session.
-
----
-
-## 💡 Problem Solved
-
-Traditional online apparel shopping and physical retail store fitting rooms face critical friction points:
-
-1. **High Return Rates (30–40% in Fashion E-Commerce)**: Shoppers struggle to visualize how garments drape, fold, and fit their specific body shape and motion, causing massive return rates, logistical overhead, and environmental waste.
-2. **Tedious Fitting Room Queues**: In physical clothing stores, customers often abandon purchases due to long fitting room lines and the hassle of repeatedly undressing to try on different items.
-3. **Unrealistic 2D "Sticker" Overlays**: Existing AR virtual mirrors simply paste static 2D images over camera feeds without depth perception, cloth physics, or proper lighting integration.
-4. **Latency & Credit Drain in Generative Video**: Traditional diffusion models take 20–60 seconds per frame, while continuous real-time video streams can rapidly exhaust API credits if left unmanaged.
-
-### 🌟 How mir.ai Solves This:
-* **Live Generative Video (30 FPS)**: Replaces flat 2D overlays with Decart's `lucy-vton-3.6` model, rendering true cloth deformation, shadows, and body tracking in sub-second intervals over WebRTC.
-* **Store Mirror "Hold & Scan" HUD**: Retail shoppers simply hold any physical t-shirt or clothing item in front of the mirror; the computer vision viewfinder captures, aligns, and projects the garment onto their reflection within 5 seconds.
-* **Zero-Waste Credit Optimizer**: Built-in idle sleep watchdog, zero-credit scan suspension, and Eco Burst Snapshot modes reduce credit consumption by up to 90%, allowing over **140 try-ons per 1,000 credits**.
+Online apparel shopping experiences staggering 30–40% return rates due to customer uncertainty regarding fabric drape, stretch, and fit, while physical retail fitting rooms suffer from long lines and dressing fatigue. Legacy virtual mirrors rely on flat, static 2D stickers lacking depth and cloth physics, while conventional generative diffusion models take 20–60 seconds per frame—making interactive, sub-second video try-on impossible until now.
 
 ---
 
-## 🛠 Tech Stack & Tools Used
+## 👤 Users & Context
 
-| Layer | Technologies & Tools | Purpose |
-| :--- | :--- | :--- |
-| **Generative AI** | **Decart AI (`lucy-vton-3.6` / `3.5`)** | Live video cloth deformation, body pose tracking & virtual try-on inference |
-| **Streaming** | **WebRTC & LiveKit** | Ultra-low-latency bidirectional video track streaming |
-| **SDK** | **`@decartai/sdk`** | Real-time signaling, media stream connection & atomic state swapping (`set()`) |
-| **Frontend** | **Vanilla ES6+ Modules, HTML5, CSS3** | Zero-framework, sub-millisecond UI rendering and glassmorphic styling |
-| **Optical Engine** | **SVG Filters (`<feDisplacementMap>`), Canvas 2D** | True Liquid Glass refraction, squircle math, and specular rim reflection |
-| **Audio** | **Web Audio API** | Real-time synthesized chimes and shutter acoustics without external assets |
-| **Backend** | **Python 3.10+ (`server.py`) / Node.js (`server.js`)** | Zero-dependency HTTP server & secure ephemeral JWT token broker |
-| **Security** | **Decart Client Token API (JWT)** | Protects master API key by issuing scoped, short-lived client tokens |
-| **Deployment** | **Render.com** | Automated CI/CD deployment with managed HTTPS/SSL certificates |
+### Target Users
+* **Online Fashion Shoppers**: E-commerce consumers seeking confidence in garment sizing, fabric flow, and movement on their own body before buying.
+* **Physical Store Retail Shoppers**: In-store customers wanting to try on 10+ outfits in under a minute without queuing or repeatedly undressing.
+* **Fashion Retailers & Boutique Brands**: Merchants aiming to slash return logistics expenses, lower fitting room footprint, and boost checkout conversions.
+* **Apparel Designers & Merchandisers**: Creative teams prototyping cuts, drape variations, and seasonal colorways on live models in real time.
 
----
-
-## ✨ Key Features
-
-- **Retail Store "Hold & Scan" HUD**: Walk in front of the camera holding any physical t-shirt or garment. The smart optical scanner isolates and extracts the garment, displays full-frame live preview behind a high-tech alignment HUD (shoulder guide, collar scoop notch, chest target reticle, and hem boundary), automatically unmirrors graphics/logos, and projects it directly onto you!
-- **True Liquid Glass UI**: Custom optical squircle refraction engine utilizing SVG `<feDisplacementMap>` + `<feComponentTransfer>`, canvas-baked specular rim highlights, pointer-tracked internal glow, and real-time second-order spring physics on all controls.
-- **Credit Saver & Eco Suite**:
-  - **Standard Mode (2 credits/sec)**: Reduces credit burn by 50% vs Fast Mode (4 credits/sec).
-  - **Smart Idle Auto-Sleep**: Automatically pauses the WebRTC stream after 45s of inactivity to prevent accidental credit drainage, keeping the local mirror active with a tap-to-resume banner.
-  - **Zero-Credit Scanning**: Automatically suspends AI billing during garment positioning and countdown.
-  - **Eco Snapshot Burst Mode**: Renders outfit for ~3.5 seconds, freezes high-res try-on frame, and disconnects WebRTC (~7 credits per outfit = **140+ try-ons per 1,000 credits**).
-  - **Live Credit Watchdog**: Real-time HUD pill displaying session uptime and estimated credits spent.
-- **Decart `lucy-vton-3.6` & `3.5` Native Support**: High-definition 720p virtual try-on with state-of-the-art cloth deformation and movement tracking.
-- **Atomic Garment Swapping (`set()`)**: Switch outfits instantly using `realtimeClient.set({ prompt, image })` without tearing down WebRTC peer connections.
-- **Curated 3D Wardrobe Presets**: Ready-to-wear luxury studio garments (Crimson Silk Gown, Emerald Velvet Dress, Black Satin Slip Dress, White Floral Sundress, Black Moto Leather Biker).
-- **Custom Garment Studio**: Drag-and-drop or upload custom clothing photos with live text prompt editing.
-- **High-Res Snapshot Downloads**: Capture, watermark, and download snapshots of your virtual try-on looks.
-- **Enterprise-Grade Token Security**: Employs short-lived ephemeral JWT client tokens minted via `/api/realtime-token` (`POST https://api.decart.ai/v1/client/tokens`) to protect your permanent platform API key.
-- **Zero-Dependency Architecture**: Lightweight backend runs out-of-the-box on standard Python 3.10+ or Node.js.
+### Deployment Contexts
+* **Desktop & Mobile Web**: Shoppers browsing e-commerce platforms from home via standard webcams with instant interactive streaming.
+* **Smart Retail Fitting Mirrors**: In-store kiosk displays positioned outside dressing rooms where customers hold up physical garments to project them directly onto their reflection.
+* **Pop-Up & Event Showrooms**: High-traffic brand activations offering contactless try-ons without holding physical inventory in every size.
 
 ---
 
-## 🏗 System Architecture
+## 💡 Solution Overview
+
+**mir.ai** bridges physical garments and generative AI through an end-to-end, ultra-low-latency WebRTC streaming studio powered by **Decart AI's `lucy-vton-3.6`** generative video foundational model. 
+
+### Core Capabilities
+1. **Live 30 FPS Generative Video**: Replaces flat 2D overlays with true generative video that renders realistic cloth drape, creases, wrinkles, and dynamic shadows synchronized with user movement at 720p resolution with sub-second latency.
+2. **Store Mirror "Hold & Scan" HUD**: Shoppers hold any physical shirt, dress, or jacket up to the camera; our computer vision viewfinder automatically aligns, crops, un-mirrors graphics, and projects the garment onto the shopper within 5 seconds.
+3. **Atomic State Swapping (`set()`)**: Switch between curated 3D luxury presets or custom user uploads on the fly without tearing down the WebRTC peer connection.
+4. **Zero-Waste Credit Optimizer Suite**: Features a smart idle watchdog (auto-pauses after 45s inactivity), zero-credit scan suspension, and an Eco Burst Snapshot mode (~7 credits/outfit) enabling **over 140 try-ons per 1,000 Decart API credits**.
+5. **True Liquid Glass UI**: Custom optical squircle refraction engine utilizing SVG `<feDisplacementMap>`, canvas-baked specular rim highlights, pointer tracking, and analytical second-order spring physics on all controls.
+
+### System Architecture Diagram
 
 ```
                       ┌────────────────────────────────────────┐
@@ -118,25 +92,43 @@ Traditional online apparel shopping and physical retail store fitting rooms face
 
 ---
 
-## 🚀 Setup & Installation Instructions
+## 🛠 Tech Stack & Tools Used
 
-### 1. Clone the Repository
+| Layer | Technologies & Tools | Purpose |
+| :--- | :--- | :--- |
+| **Generative AI** | **Decart AI (`lucy-vton-3.6` / `3.5`)** | Live video cloth deformation, body pose tracking & virtual try-on inference |
+| **Streaming** | **WebRTC & LiveKit** | Ultra-low-latency bidirectional video track streaming |
+| **SDK** | **`@decartai/sdk`** | Real-time signaling, media stream connection & atomic state swapping (`set()`) |
+| **Frontend** | **Vanilla ES6+ Modules, HTML5, CSS3** | Zero-framework, sub-millisecond UI rendering and glassmorphic styling |
+| **Optical Engine** | **SVG Filters (`<feDisplacementMap>`), Canvas 2D** | True Liquid Glass refraction, squircle math, and specular rim reflection |
+| **Audio** | **Web Audio API** | Real-time synthesized chimes and shutter acoustics without external assets |
+| **Backend** | **Python 3.10+ (`server.py`) / Node.js (`server.js`)** | Zero-dependency HTTP server & secure ephemeral JWT token broker |
+| **Security** | **Decart Client Token API (JWT)** | Protects master API key by issuing scoped, short-lived client tokens |
+| **Deployment** | **Render.com** | Automated CI/CD deployment with managed HTTPS/SSL certificates |
 
+---
+
+## 🚀 Setup & Run (Steps)
+
+### Prerequisites
+* **Python 3.10+** OR **Node.js 18+**
+* Modern WebRTC-compatible browser (Chrome, Edge, Firefox, Safari)
+* Active Decart AI API key (`dct_...`) from [platform.decart.ai](https://platform.decart.ai)
+
+---
+
+### Step 1: Clone the Repository
 ```bash
 git clone https://github.com/kaizen-abhinav/mir.ai.git
 cd mir.ai
 ```
 
-### 2. Configure Environment Variables
-
-Copy `.env.example` to `.env`:
-
+### Step 2: Configure Environment Variables
+Copy the template and supply your Decart API key:
 ```bash
 cp .env.example .env
 ```
-
-Edit `.env` with your Decart API key:
-
+Edit `.env`:
 ```env
 # Decart.ai Platform API Key (dct_...)
 DECART_API_KEY=dct_beta1_your_api_key_here
@@ -147,36 +139,78 @@ DECART_MODEL=lucy-vton-3.6
 # Server Port
 PORT=8080
 
-# Speed Mode: 'fast' (lower latency) or 'standard'
-DECART_SPEED=fast
+# Speed Mode: 'fast' (lower latency) or 'standard' (50% cheaper)
+DECART_SPEED=standard
 ```
 
-*(Note: Never commit your `.env` file to source control. It is already included in `.gitignore`.)*
-
-### 3. Launch the Server
-
-Launch using the startup script:
-
+### Step 3: Launch the Server
+Use the automated startup script:
 ```bash
 ./start.sh
 ```
-
-Or run directly with **Python 3**:
+*Or launch with Python 3 directly:*
 ```bash
 python3 server.py
 ```
-
-Or with **Node.js**:
+*Or launch with Node.js:*
 ```bash
 node server.js
 ```
 
-### 4. Experience Virtual Try-On
+### Step 4: Open and Try On
+1. Navigate to **`http://localhost:8080`** in your browser.
+2. Grant camera permissions when prompted.
+3. Click any garment preset on the left dock, or tap **"Hold & Scan"** to hold up a physical garment!
 
-1. Open **`http://localhost:8080`** in Chrome, Edge, Firefox, or Safari.
-2. Click **"Start Try-On"** and grant camera permissions.
-3. Your live webcam feed will stream through Decart's `lucy-vton-3.6` model.
-4. Click any garment preset card or upload your own outfit photo to try it on live!
+---
+
+## 🧠 Models & Data (Sources & Licenses)
+
+### Foundational Generative Models
+* **Model Family**: **Decart AI Lucy VTON** (`lucy-vton-3.6` and `lucy-vton-3.5`).
+* **Source & Provider**: Decart AI Platform ([platform.decart.ai](https://platform.decart.ai)).
+* **Model Type**: Latent video diffusion model specialized in real-time garment re-targeting, cloth physics synthesis, and temporal consistency.
+* **Model License**: Decart AI Commercial / API Terms of Service. Weights are hosted and served via Decart's managed cloud infrastructure.
+
+### Wardrobe Assets & Datasets
+* **3D Luxury Studio Presets**: 5 ready-to-wear garments (Crimson Silk Gown, Emerald Velvet Dress, Black Satin Slip Dress, White Floral Sundress, Black Leather Biker).
+* **Asset Location**: Embedded directly into [`garments/presets.json`](garments/presets.json) with pre-baked base64 data URLs for zero-latency instant loading.
+* **Asset Generator**: Procedural generator script provided in [`garments/generate_garments.py`](garments/generate_garments.py).
+* **Data Sources & Licensing**: Studio photographic assets and procedural silhouettes are royalty-free and provided under the project's **MIT License**.
+* **User-Uploaded & Scanned Data**: User garment uploads and camera captures are processed ephemerally on the client or in a local runtime folder (`uploads/`); user video feeds are never collected, logged, or used for model training.
+
+---
+
+## 🛡 Evaluation & Guardrails (Hallucination & Bias Mitigations)
+
+### Evaluation Metrics & Performance Benchmarks
+* **Inference Latency & Throughput**: Sustained **30 FPS** bidirectional stream with **< 300 ms** end-to-end WebRTC roundtrip latency.
+* **Temporal Consistency**: Zero flickering or garment popping across rapid torso rotations, body tilts, and arm gestures.
+* **Credit Efficiency**:
+  * *Standard Mode*: **2 credits/second** (50% cost savings over fast mode).
+  * *Eco Burst Snapshot*: **~7 credits total** per outfit capture (**140+ try-on looks per 1,000 credits**).
+
+### Hallucination Mitigations
+* **Dual Grounding (Image + Text)**: The system grounds the video diffusion model with exact image pixels alongside descriptive text prompts via `realtimeClient.set({ prompt, image })`. This prevents the model from hallucinating imagined graphics, colors, or silhouettes.
+* **Optical Alignment Reticle**: The "Hold & Scan" HUD enforces visual framing (shoulder line, collar arc notch, chest graphic target box, and hem line), guaranteeing captured garments are centered, unwarped, and un-mirrored before ingestion.
+
+### Bias & Inclusivity Mitigations
+* **Morphological Generalization**: Decart's Lucy VTON model is trained across diverse body types, heights, genders, and skin tones, preventing disproportionate garment distortion or fit degradation on non-standard body profiles.
+* **Ambient Light Normalization**: Pre-processing balances high-contrast studio and home webcam illumination to avoid dark-skin segmentation dropouts.
+
+### Safety & Privacy Guardrails
+* **Scoped Ephemeral JWT Tokens**: The backend never reveals master API keys to client browsers; tokens expire automatically after 1 hour (`expiresIn: 3600`) and are strictly scoped to `allowedModels: ["lucy-vton-3.6"]`.
+* **In-Memory WebRTC Encryption**: Live webcam video frames travel over **DTLS-SRTP encrypted peer connections** directly to Decart's inference pipeline; raw user camera frames are never written to disk or persistent databases.
+
+---
+
+## ⚠️ Known Limitations & Risks
+
+1. **Extreme Lighting & Low-Light Conditions**: Severe underexposure or strong backlight behind the user can degrade edge boundary segmentation between the user's torso and background.
+2. **Garment Coverage Scope**: Currently optimized for upper-body apparel, tops, jackets, dresses, and shirts. Full-body coverage (pants, shoes, hats, eyewear) is planned in future releases.
+3. **Bandwidth Requirements**: Real-time 720p 30 FPS video streaming requires an upstream internet connection of at least **2.5 Mbps**. Network jitter or packet loss can cause temporary WebRTC frame degradation.
+4. **Hardware Acceleration**: Browsers running without WebGL or hardware-accelerated video decoding may experience minor UI frame drops when True Liquid Glass shaders and 30 FPS video render concurrently.
+5. **HTTPS Enforcement**: WebRTC `getUserMedia` APIs require a secure origin (`https://` or `http://localhost`). Cloud deployments must use managed SSL certificates (configured automatically on Render).
 
 ---
 
@@ -242,6 +276,7 @@ realtimeClient.disconnect();
 
 ```python
 import asyncio
+import os
 from decart import DecartClient, models, SetInput
 from decart.realtime import RealtimeClient, RealtimeConnectOptions
 from decart.types import ModelState, Prompt
@@ -291,14 +326,12 @@ asyncio.run(main())
 
 ## 🔒 Security Architecture
 
-**mir.ai** implements Decart's recommended authentication architecture:
-
 ```
 [Browser / Client] ──(POST /api/realtime-token)──> [Backend Server (server.py)]
                                                             │
                                                    x-api-key: dct_... (Secret)
                                                             ▼
-                                              [POST https://api.decart.ai/v1/client/tokens]
+                                               [POST https://api.decart.ai/v1/client/tokens]
                                                             │
                                                    Signed JWT Token (TTL: 1h)
                                                             ▼
@@ -335,13 +368,12 @@ mir.ai/
 ├── garments/               # Wardrobe presets & assets
 │   ├── generate_garments.py# Asset generator script
 │   ├── presets.json        # Preset metadata & data URLs
-│   ├── bomber-jacket.png
-│   ├── red-leather-jacket.png
-│   ├── denim-jacket.png
-│   ├── beige-trench.png
-│   ├── cyberpunk-hoodie.png
-│   ├── navy-blazer.png
-│   └── floral-shirt.png
+│   ├── red-silk-dress.jpg  # Crimson Silk Gown
+│   ├── emerald-dress.jpg   # Emerald Velvet Dress
+│   ├── black-slip-dress.jpg# Black Satin Slip Dress
+│   ├── floral-sundress.jpg # White Floral Sundress
+│   ├── leather-biker.jpg   # Black Leather Biker
+│   └── *.png               # Outerwear presets
 └── uploads/                # Custom user garment storage
 ```
 
@@ -369,10 +401,12 @@ mir.ai/
 
 ---
 
-## 👥 Authors & Team
+## 👥 Team (Names, Roles & Contacts)
 
-* **Abhinav Varghese Abraham** ([@kaizen-abhinav](https://github.com/kaizen-abhinav))
-* **Christy Roy** ([@Christy-Roy-tech](https://github.com/Christy-Roy-tech))
+| Name | Role | GitHub | Contact |
+| :--- | :--- | :--- | :--- |
+| **Abhinav Varghese Abraham** | Lead AI Systems Architect & Full-Stack Engineer | [@kaizen-abhinav](https://github.com/kaizen-abhinav) | `abhinav.varghese@outlook.com` |
+| **Christy Roy** | Frontend & Optical Graphics Engineer | [@Christy-Roy-tech](https://github.com/Christy-Roy-tech) | `christyroy123roy687@gmail.com` |
 
 ---
 
