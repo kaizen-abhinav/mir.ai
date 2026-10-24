@@ -32,6 +32,38 @@
 
 ---
 
+## 💡 Problem Solved
+
+Traditional online apparel shopping and physical retail store fitting rooms face critical friction points:
+
+1. **High Return Rates (30–40% in Fashion E-Commerce)**: Shoppers struggle to visualize how garments drape, fold, and fit their specific body shape and motion, causing massive return rates, logistical overhead, and environmental waste.
+2. **Tedious Fitting Room Queues**: In physical clothing stores, customers often abandon purchases due to long fitting room lines and the hassle of repeatedly undressing to try on different items.
+3. **Unrealistic 2D "Sticker" Overlays**: Existing AR virtual mirrors simply paste static 2D images over camera feeds without depth perception, cloth physics, or proper lighting integration.
+4. **Latency & Credit Drain in Generative Video**: Traditional diffusion models take 20–60 seconds per frame, while continuous real-time video streams can rapidly exhaust API credits if left unmanaged.
+
+### 🌟 How mir.ai Solves This:
+* **Live Generative Video (30 FPS)**: Replaces flat 2D overlays with Decart's `lucy-vton-3.6` model, rendering true cloth deformation, shadows, and body tracking in sub-second intervals over WebRTC.
+* **Store Mirror "Hold & Scan" HUD**: Retail shoppers simply hold any physical t-shirt or clothing item in front of the mirror; the computer vision viewfinder captures, aligns, and projects the garment onto their reflection within 5 seconds.
+* **Zero-Waste Credit Optimizer**: Built-in idle sleep watchdog, zero-credit scan suspension, and Eco Burst Snapshot modes reduce credit consumption by up to 90%, allowing over **140 try-ons per 1,000 credits**.
+
+---
+
+## 🛠 Tech Stack & Tools Used
+
+| Layer | Technologies & Tools | Purpose |
+| :--- | :--- | :--- |
+| **Generative AI** | **Decart AI (`lucy-vton-3.6` / `3.5`)** | Live video cloth deformation, body pose tracking & virtual try-on inference |
+| **Streaming** | **WebRTC & LiveKit** | Ultra-low-latency bidirectional video track streaming |
+| **SDK** | **`@decartai/sdk`** | Real-time signaling, media stream connection & atomic state swapping (`set()`) |
+| **Frontend** | **Vanilla ES6+ Modules, HTML5, CSS3** | Zero-framework, sub-millisecond UI rendering and glassmorphic styling |
+| **Optical Engine** | **SVG Filters (`<feDisplacementMap>`), Canvas 2D** | True Liquid Glass refraction, squircle math, and specular rim reflection |
+| **Audio** | **Web Audio API** | Real-time synthesized chimes and shutter acoustics without external assets |
+| **Backend** | **Python 3.10+ (`server.py`) / Node.js (`server.js`)** | Zero-dependency HTTP server & secure ephemeral JWT token broker |
+| **Security** | **Decart Client Token API (JWT)** | Protects master API key by issuing scoped, short-lived client tokens |
+| **Deployment** | **Render.com** | Automated CI/CD deployment with managed HTTPS/SSL certificates |
+
+---
+
 ## ✨ Key Features
 
 - **Retail Store "Hold & Scan" HUD**: Walk in front of the camera holding any physical t-shirt or garment. The smart optical scanner isolates and extracts the garment, displays full-frame live preview behind a high-tech alignment HUD (shoulder guide, collar scoop notch, chest target reticle, and hem boundary), automatically unmirrors graphics/logos, and projects it directly onto you!
@@ -85,7 +117,7 @@
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Setup & Installation Instructions
 
 ### 1. Clone the Repository
 
