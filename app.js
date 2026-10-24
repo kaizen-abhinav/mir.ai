@@ -29,6 +29,10 @@ const state = {
   customGarmentDataUrl: null,
   serverApiKey: "",
   modelName: "lucy-vton-3.6",
+  scanTimerId: null,
+  scanSecondsLeft: 3,
+  lastScannedGarmentDataUrl: null,
+  selectedScanCategory: "t-shirt",
 };
 
 // DOM Elements
@@ -39,6 +43,7 @@ const elements = {
   stagePlaceholder: document.getElementById("stage-placeholder"),
   btnToggleStream: document.getElementById("btn-toggle-stream"),
   btnPlaceholderStart: document.getElementById("btn-placeholder-start"),
+  btnStandbyScan: document.getElementById("btn-standby-scan"),
   btnStreamLabel: document.getElementById("btn-stream-label"),
   statusDot: document.getElementById("status-dot"),
   statusText: document.getElementById("status-text"),
@@ -78,6 +83,21 @@ const elements = {
   logBody: document.getElementById("log-body"),
   toastContainer: document.getElementById("toast-container"),
   snapshotCanvas: document.getElementById("snapshot-canvas"),
+  // Retail Store Scan Elements
+  btnScanGarment: document.getElementById("btn-scan-garment"),
+  btnDockScan: document.getElementById("btn-dock-scan"),
+  viewfinderOverlay: document.getElementById("viewfinder-overlay"),
+  viewfinderFrame: document.getElementById("viewfinder-frame"),
+  scanCountdown: document.getElementById("scan-countdown"),
+  btnCancelScan: document.getElementById("btn-cancel-scan"),
+  btnSnapNow: document.getElementById("btn-snap-now"),
+  shutterFlash: document.getElementById("shutter-flash"),
+  scanResultOverlay: document.getElementById("scan-result-overlay"),
+  scanResultThumb: document.getElementById("scan-result-thumb"),
+  scanPromptInput: document.getElementById("scan-prompt-input"),
+  btnCloseScanResult: document.getElementById("btn-close-scan-result"),
+  btnRetakeScan: document.getElementById("btn-retake-scan"),
+  btnProjectScan: document.getElementById("btn-project-scan"),
 };
 
 // Logging & Diagnostics
@@ -734,6 +754,201 @@ function handleFile(file) {
   reader.readAsDataURL(file);
 }
 
+// Audio Chime synthesizer for smart store interaction
+function playScanChime(freq = 700, duration = 0.08) {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + duration);
+  } catch (_) {}
+}
+
+// Start Store Scan Mode (Viewfinder + 3-2-1 Countdown)
+async function startGarmentScanner() {
+  if (!elements.viewfinderOverlay) return;
+
+  // 1. Ensure camera stream is active so the shopper sees what they are holding
+  if (!state.localStream) {
+    addLog("Activating camera for garment scanning...", "info");
+    try {
+      await getCameraStream();
+    } catch (err) {
+      showToast("Could not access camera: " + err.message, "error");
+      return;
+    }
+  }
+
+  // 2. Open viewfinder overlay
+  elements.viewfinderOverlay.classList.add("active");
+  state.scanSecondsLeft = 3;
+  if (elements.scanCountdown) {
+    elements.scanCountdown.textContent = "3";
+    elements.scanCountdown.style.display = "block";
+  }
+
+  addLog("Store Scan Mode: Hold up t-shirt / garment in front of camera.", "info");
+  playScanChime(650, 0.1);
+
+  // 3. Clear any existing timer
+  if (state.scanTimerId) clearInterval(state.scanTimerId);
+
+  // 4. Run 3-2-1 countdown
+  state.scanTimerId = setInterval(() => {
+    state.scanSecondsLeft--;
+    if (state.scanSecondsLeft > 0) {
+      if (elements.scanCountdown) elements.scanCountdown.textContent = String(state.scanSecondsLeft);
+      playScanChime(750 + (3 - state.scanSecondsLeft) * 120, 0.08);
+    } else {
+      clearInterval(state.scanTimerId);
+      state.scanTimerId = null;
+      captureHeldGarmentCrop();
+    }
+  }, 1000);
+}
+
+// Cancel Scanner
+function cancelGarmentScanner() {
+  if (state.scanTimerId) {
+    clearInterval(state.scanTimerId);
+    state.scanTimerId = null;
+  }
+  if (elements.viewfinderOverlay) {
+    elements.viewfinderOverlay.classList.remove("active");
+  }
+}
+
+// Crop and capture held garment
+function captureHeldGarmentCrop() {
+  cancelGarmentScanner();
+
+  // Play shutter chime & trigger flash
+  playScanChime(1300, 0.18);
+  if (elements.shutterFlash) {
+    elements.shutterFlash.classList.add("flash");
+    setTimeout(() => elements.shutterFlash.classList.remove("flash"), 400);
+  }
+
+  const video = elements.videoLocal;
+  if (!video || !video.videoWidth) {
+    showToast("No active webcam frame to capture garment from!", "error");
+    return;
+  }
+
+  const vw = video.videoWidth;
+  const vh = video.videoHeight;
+
+  // Calculate crop rectangle matching viewfinder frame relative to viewport
+  let cropX = 0, cropY = 0, cropW = vw, cropH = vh;
+  const frameRect = elements.viewfinderFrame ? elements.viewfinderFrame.getBoundingClientRect() : null;
+  const viewRect = elements.stageViewport ? elements.stageViewport.getBoundingClientRect() : null;
+
+  if (frameRect && viewRect && viewRect.width > 0 && viewRect.height > 0) {
+    const rx = (frameRect.left - viewRect.left) / viewRect.width;
+    const ry = (frameRect.top - viewRect.top) / viewRect.height;
+    const rw = frameRect.width / viewRect.width;
+    const rh = frameRect.height / viewRect.height;
+
+    cropX = Math.max(0, Math.round(rx * vw));
+    cropY = Math.max(0, Math.round(ry * vh));
+    cropW = Math.min(vw - cropX, Math.round(rw * vw));
+    cropH = Math.min(vh - cropY, Math.round(rh * vh));
+  } else {
+    cropW = Math.round(vw * 0.55);
+    cropH = Math.round(vh * 0.70);
+    cropX = Math.round((vw - cropW) / 2);
+    cropY = Math.round((vh - cropH) / 2);
+  }
+
+  // Render to offscreen canvas
+  const canvas = document.createElement("canvas");
+  canvas.width = cropW;
+  canvas.height = cropH;
+  const ctx = canvas.getContext("2d");
+
+  // Correct for selfie camera mirror so graphics / logos on garment are not backwards
+  if (state.isMirrored) {
+    ctx.translate(cropW, 0);
+    ctx.scale(-1, 1);
+    const mirroredSrcX = vw - (cropX + cropW);
+    ctx.drawImage(video, mirroredSrcX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+  } else {
+    ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+  }
+
+  const garmentDataUrl = canvas.toDataURL("image/jpeg", 0.94);
+  state.lastScannedGarmentDataUrl = garmentDataUrl;
+  addLog("Successfully extracted held garment snapshot.", "success");
+
+  // Show confirmation / project dialog
+  showScanResultDialog(garmentDataUrl);
+}
+
+// Show Captured Garment Dialog
+function showScanResultDialog(dataUrl) {
+  if (elements.scanResultThumb) elements.scanResultThumb.src = dataUrl;
+  if (elements.scanPromptInput) {
+    elements.scanPromptInput.value = "Wearing this captured t-shirt with exact fabric, graphic, and color";
+  }
+  state.selectedScanCategory = "t-shirt";
+
+  // Reset category pills
+  document.querySelectorAll(".cat-pill").forEach(p => {
+    p.classList.toggle("active", p.dataset.cat === "t-shirt");
+  });
+
+  if (elements.scanResultOverlay) {
+    elements.scanResultOverlay.classList.add("active");
+  }
+}
+
+// Project scanned garment onto the user via Decart Lucy
+async function projectScannedGarment() {
+  if (elements.scanResultOverlay) {
+    elements.scanResultOverlay.classList.remove("active");
+  }
+
+  if (!state.lastScannedGarmentDataUrl) return;
+
+  const cat = state.selectedScanCategory || "t-shirt";
+  const prompt = (elements.scanPromptInput && elements.scanPromptInput.value.trim()) || `Wearing this captured ${cat}`;
+  const label = `Scanned ${cat.charAt(0).toUpperCase() + cat.slice(1)}`;
+
+  // Ensure WebRTC connection is active
+  if (!state.isConnected || !state.realtimeClient) {
+    addLog("Connecting real-time VTON stream to project scanned garment...", "info");
+    await connectStream();
+  }
+
+  // 1. Add to the session catalog presets list (appears at the top of left dock!)
+  const newPreset = {
+    id: `scan-${Date.now()}`,
+    name: label,
+    prompt: prompt,
+    filename: "scanned-garment.jpg",
+    imageUrl: state.lastScannedGarmentDataUrl,
+    dataUrl: state.lastScannedGarmentDataUrl,
+    category: "Store Scan",
+    isScanned: true
+  };
+
+  state.presets.unshift(newPreset);
+  renderPresets(state.presets);
+
+  // 2. Project onto user atomically
+  await applyGarment(prompt, state.lastScannedGarmentDataUrl, label, state.lastScannedGarmentDataUrl);
+  showToast(`✨ Scanned ${cat} projected onto you!`, "success");
+}
+
 // Snapshot Photo Capture
 function captureSnapshot() {
   const video = elements.videoOutput;
@@ -777,6 +992,39 @@ function setupEventListeners() {
   };
   if (elements.btnToggleStream) elements.btnToggleStream.addEventListener("click", toggleHandler);
   if (elements.btnPlaceholderStart) elements.btnPlaceholderStart.addEventListener("click", toggleHandler);
+
+  // Store Mirror: Scan Held Garment triggers
+  if (elements.btnScanGarment) elements.btnScanGarment.addEventListener("click", startGarmentScanner);
+  if (elements.btnDockScan) elements.btnDockScan.addEventListener("click", startGarmentScanner);
+  if (elements.btnStandbyScan) elements.btnStandbyScan.addEventListener("click", startGarmentScanner);
+  if (elements.btnCancelScan) elements.btnCancelScan.addEventListener("click", cancelGarmentScanner);
+  if (elements.btnSnapNow) elements.btnSnapNow.addEventListener("click", captureHeldGarmentCrop);
+
+  // Scan Result Dialog Controls
+  if (elements.btnCloseScanResult && elements.scanResultOverlay) {
+    elements.btnCloseScanResult.addEventListener("click", () => elements.scanResultOverlay.classList.remove("active"));
+  }
+  if (elements.btnRetakeScan && elements.scanResultOverlay) {
+    elements.btnRetakeScan.addEventListener("click", () => {
+      elements.scanResultOverlay.classList.remove("active");
+      startGarmentScanner();
+    });
+  }
+  if (elements.btnProjectScan) {
+    elements.btnProjectScan.addEventListener("click", projectScannedGarment);
+  }
+
+  // Category Pills
+  document.querySelectorAll(".cat-pill").forEach(pill => {
+    pill.addEventListener("click", () => {
+      document.querySelectorAll(".cat-pill").forEach(p => p.classList.remove("active"));
+      pill.classList.add("active");
+      state.selectedScanCategory = pill.dataset.cat || "t-shirt";
+      if (elements.scanPromptInput) {
+        elements.scanPromptInput.value = `Wearing this captured ${state.selectedScanCategory} with exact fabric, graphic, and color`;
+      }
+    });
+  });
 
   // Upload panel toggle
   const uploadPanel = document.getElementById('upload-panel');

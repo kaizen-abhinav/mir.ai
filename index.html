@@ -30,7 +30,10 @@
       <div class="standby-inner">
         <span class="standby-wordmark">mir.ai</span>
         <p class="standby-hint">camera + ai try-on</p>
-        <button class="btn-go" id="btn-placeholder-start">start</button>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+          <button class="btn-go" id="btn-placeholder-start">start</button>
+          <button class="btn-go standby-scan-btn" id="btn-standby-scan">hold & scan garment</button>
+        </div>
       </div>
     </div>
 
@@ -48,6 +51,14 @@
 
     <!-- ═══ TOP-RIGHT: Tiny Action Icons ═══ -->
     <div class="hud-tr">
+      <!-- Store Mirror Feature: Hold & Scan Garment -->
+      <button class="hud-btn hud-btn-scan" id="btn-scan-garment" title="Scan Held Garment (Store Mode)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20.38 3.46L16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"></path>
+        </svg>
+        <span class="scan-label-badge">scan item</span>
+      </button>
+
       <button class="hud-btn" id="btn-toggle-stream" title="Connect / Disconnect">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
           <polygon points="5 3 19 12 5 21 5 3"></polygon>
@@ -88,6 +99,13 @@
             <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
         </div>
+      </button>
+
+      <!-- Store Mode: Hold and Scan Garment from Camera -->
+      <button class="catalog-scan-btn" id="btn-dock-scan" title="Hold up garment & scan" aria-label="scan garment">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20.38 3.46L16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"></path>
+        </svg>
       </button>
 
       <!-- Glass Divider -->
@@ -208,6 +226,79 @@
   </div>
 
 
+  <!-- ═══ SCANNER VIEWFINDER OVERLAY (Hold & Scan Garment) ═══ -->
+  <div class="viewfinder-overlay" id="viewfinder-overlay">
+    <div class="viewfinder-header">
+      <span class="viewfinder-title">hold up your garment</span>
+      <span class="viewfinder-sub">center the t-shirt / clothing item inside the frame</span>
+    </div>
+
+    <div class="viewfinder-frame" id="viewfinder-frame">
+      <div class="reticle-corner top-left"></div>
+      <div class="reticle-corner top-right"></div>
+      <div class="reticle-corner bottom-left"></div>
+      <div class="reticle-corner bottom-right"></div>
+      
+      <div class="scan-laser-line"></div>
+
+      <div class="tshirt-silhouette-guide">
+        <svg viewBox="0 0 100 100" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1.8" stroke-dasharray="4 3">
+          <path d="M 30,15 L 42,22 C 45,26 55,26 58,22 L 70,15 L 88,32 L 78,42 L 70,36 L 70,85 C 70,87 68,89 66,89 L 34,89 C 32,89 30,87 30,85 L 30,36 L 22,42 L 12,32 Z"/>
+        </svg>
+      </div>
+
+      <div class="countdown-display" id="scan-countdown">3</div>
+    </div>
+
+    <div class="viewfinder-controls">
+      <button class="btn-ghost" id="btn-cancel-scan">cancel</button>
+      <button class="btn-apply btn-snap-now" id="btn-snap-now">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+        </svg>
+        capture now
+      </button>
+    </div>
+  </div>
+
+  <!-- Camera Shutter Flash Effect -->
+  <div class="shutter-flash" id="shutter-flash"></div>
+
+  <!-- ═══ SCAN RESULT DIALOG (Project Held Garment) ═══ -->
+  <div class="scan-result-overlay" id="scan-result-overlay">
+    <div class="scan-result-card">
+      <div class="scan-card-header">
+        <span>garment captured</span>
+        <button class="hud-btn" id="btn-close-scan-result">&times;</button>
+      </div>
+
+      <div class="scan-card-body">
+        <div class="scan-thumb-wrap">
+          <img id="scan-result-thumb" class="scan-result-img" alt="Captured Garment">
+        </div>
+
+        <div class="scan-options">
+          <label class="field-label">item type</label>
+          <div class="category-pills" id="scan-category-pills">
+            <button type="button" class="cat-pill active" data-cat="t-shirt">t-shirt</button>
+            <button type="button" class="cat-pill" data-cat="shirt">shirt</button>
+            <button type="button" class="cat-pill" data-cat="dress">dress</button>
+            <button type="button" class="cat-pill" data-cat="jacket">jacket</button>
+            <button type="button" class="cat-pill" data-cat="hoodie">hoodie</button>
+          </div>
+
+          <label class="field-label" style="margin-top: 8px;">prompt</label>
+          <input type="text" id="scan-prompt-input" class="field-input" value="Wearing this captured t-shirt with exact fabric, graphic, and color">
+        </div>
+      </div>
+
+      <div class="scan-card-footer">
+        <button class="btn-ghost" id="btn-retake-scan">↻ retake</button>
+        <button class="btn-apply btn-project-now" id="btn-project-scan">✨ project onto me</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast -->
   <div class="toast-container" id="toast-container"></div>
 
@@ -223,6 +314,6 @@
   <!-- Keep old IDs alive for JS compat -->
   <span id="btn-stream-label" style="display:none;">Start Try-On</span>
 
-  <script type="module" src="app.js?v=6"></script>
+  <script type="module" src="app.js?v=8"></script>
 </body>
 </html>

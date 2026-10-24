@@ -1030,3 +1030,396 @@ input:checked + .toggle-track::before {
   .hud-tr { top: 14px; right: 16px; }
   .hud-br { display: none; }
 }
+
+
+/* ════════════════════ SMART STORE: HOLD & SCAN VIEWFINDER ════════════════════ */
+
+.hud-btn-scan {
+  position: relative;
+  background: rgba(120, 220, 255, 0.12);
+  color: var(--cyan);
+  box-shadow: 0 0 16px rgba(120, 220, 255, 0.25);
+  width: auto;
+  padding: 0 10px;
+  border-radius: 20px;
+  gap: 5px;
+}
+
+.hud-btn-scan:hover {
+  background: rgba(120, 220, 255, 0.22);
+  color: #fff;
+  transform: scale(1.04);
+}
+
+.scan-label-badge {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: lowercase;
+}
+
+.catalog-scan-btn {
+  width: 58px;
+  height: 58px;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, rgba(120, 220, 255, 0.22) 0%, rgba(255, 255, 255, 0.05) 55%, rgba(120, 220, 255, 0.15) 100%);
+  backdrop-filter: blur(32px) saturate(200%);
+  -webkit-backdrop-filter: blur(32px) saturate(200%);
+  border: none;
+  border-radius: 22px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  box-shadow: 
+    inset 0 2px 1.5px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -1px 2px 0 rgba(0, 0, 0, 0.3),
+    0 8px 24px -2px rgba(0, 0, 0, 0.45),
+    0 0 20px 0 rgba(120, 220, 255, 0.25);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  color: var(--cyan);
+}
+
+.catalog-scan-btn:hover {
+  transform: scale(1.06);
+  color: #fff;
+  box-shadow: 
+    inset 0 2px 2px 0 rgba(255, 255, 255, 0.6),
+    0 12px 32px rgba(120, 220, 255, 0.35);
+}
+
+.standby-scan-btn {
+  margin-top: 10px;
+  background: rgba(120, 220, 255, 0.08);
+  border: 1px solid rgba(120, 220, 255, 0.2);
+  color: var(--cyan);
+}
+
+.standby-scan-btn:hover {
+  background: rgba(120, 220, 255, 0.16);
+  color: #fff;
+}
+
+/* Full-Screen Viewfinder Overlay */
+.viewfinder-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 36px 20px 48px;
+  background: radial-gradient(circle at center, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0.75) 100%);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+
+.viewfinder-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.viewfinder-header {
+  text-align: center;
+  animation: fadeInDown 0.4s ease forwards;
+}
+
+.viewfinder-title {
+  display: block;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  color: rgba(255, 255, 255, 0.9);
+  text-transform: lowercase;
+}
+
+.viewfinder-sub {
+  display: block;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+  letter-spacing: 1px;
+  margin-top: 4px;
+}
+
+/* Center Scanning Frame */
+.viewfinder-frame {
+  position: relative;
+  width: min(340px, 80vw);
+  height: min(440px, 60vh);
+  border-radius: 24px;
+  border: 1px dashed rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.02);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: 0 0 50px rgba(0, 0, 0, 0.6), inset 0 0 40px rgba(120, 220, 255, 0.05);
+}
+
+/* Glowing Corner Brackets */
+.reticle-corner {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border-color: var(--cyan);
+  border-style: solid;
+  pointer-events: none;
+}
+
+.reticle-corner.top-left {
+  top: 10px;
+  left: 10px;
+  border-width: 3px 0 0 3px;
+  border-top-left-radius: 12px;
+}
+
+.reticle-corner.top-right {
+  top: 10px;
+  right: 10px;
+  border-width: 3px 3px 0 0;
+  border-top-right-radius: 12px;
+}
+
+.reticle-corner.bottom-left {
+  bottom: 10px;
+  left: 10px;
+  border-width: 0 0 3px 3px;
+  border-bottom-left-radius: 12px;
+}
+
+.reticle-corner.bottom-right {
+  bottom: 10px;
+  right: 10px;
+  border-width: 0 3px 3px 0;
+  border-bottom-right-radius: 12px;
+}
+
+/* Sweeping Laser Line */
+.scan-laser-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--cyan), #fff, var(--cyan), transparent);
+  box-shadow: 0 0 14px 2px var(--cyan);
+  top: 0;
+  animation: scanSweep 2.2s ease-in-out infinite alternate;
+}
+
+@keyframes scanSweep {
+  0% { top: 6%; opacity: 0.3; }
+  50% { opacity: 1; }
+  100% { top: 94%; opacity: 0.3; }
+}
+
+/* T-Shirt Silhouette Guide Watermark */
+.tshirt-silhouette-guide {
+  width: 65%;
+  height: 65%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.tshirt-silhouette-guide svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Countdown Badge */
+.countdown-display {
+  position: absolute;
+  font-size: 68px;
+  font-weight: 300;
+  color: #fff;
+  text-shadow: 0 0 30px rgba(120, 220, 255, 0.8), 0 0 10px #000;
+  animation: countPulse 1s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes countPulse {
+  0% { transform: scale(1.3); opacity: 0.4; }
+  50% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.8; }
+}
+
+/* Controls below frame */
+.viewfinder-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  z-index: 5;
+}
+
+.btn-snap-now {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 24px;
+}
+
+/* Shutter Flash Animation */
+.shutter-flash {
+  position: fixed;
+  inset: 0;
+  background: #fff;
+  z-index: 99;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.shutter-flash.flash {
+  animation: shutterFlash 0.35s ease-out forwards;
+}
+
+@keyframes shutterFlash {
+  0% { opacity: 0.85; }
+  100% { opacity: 0; }
+}
+
+/* ════════════════════ SCAN RESULT CONFIRMATION DIALOG ════════════════════ */
+
+.scan-result-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.scan-result-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.scan-result-card {
+  width: min(440px, 92vw);
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(36px) saturate(180%);
+  -webkit-backdrop-filter: blur(36px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 28px;
+  padding: 24px;
+  box-shadow: 
+    inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.2),
+    0 24px 60px rgba(0, 0, 0, 0.8);
+  animation: scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes scaleUp {
+  from { transform: scale(0.92); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.scan-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  text-transform: lowercase;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.scan-card-body {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 22px;
+}
+
+.scan-thumb-wrap {
+  width: 120px;
+  height: 150px;
+  flex-shrink: 0;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #000;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+}
+
+.scan-result-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.scan-options {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.category-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.cat-pill {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.6);
+  font-family: var(--font);
+  font-size: 11px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: lowercase;
+}
+
+.cat-pill:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.cat-pill.active {
+  background: var(--cyan);
+  border-color: var(--cyan);
+  color: #060e1d;
+  font-weight: 600;
+  box-shadow: 0 0 12px rgba(120, 220, 255, 0.4);
+}
+
+.scan-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.btn-project-now {
+  background: linear-gradient(135deg, rgba(120, 220, 255, 0.95), rgba(79, 172, 254, 0.95));
+  color: #050d1a;
+  font-weight: 600;
+  padding: 10px 22px;
+  box-shadow: 0 4px 18px rgba(120, 220, 255, 0.35);
+}
+
+.btn-project-now:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+

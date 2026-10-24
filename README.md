@@ -24,12 +24,12 @@
 
 ## ✨ Features
 
+- **Retail Store "Hold & Scan" Mode**: Walk up holding any physical t-shirt, shirt, or dress. An interactive 3-2-1 viewfinder isolates and extracts the garment from the camera feed, automatically corrects for mirror orientation, and projects it onto you in real time!
 - **Decart `lucy-vton-3.6` & `3.5` Native Support**: High-definition 720p virtual try-on with state-of-the-art cloth deformation and movement tracking.
 - **Fast Mode (`speed: "fast"`)**: Sub-second end-to-end streaming latency utilizing Decart's high-throughput compute tier.
 - **Atomic Garment Swapping (`set()`)**: Switch outfits instantly using `realtimeClient.set({ prompt, image })` without tearing down WebRTC peer connections.
-- **Curated Wardrobe Presets**: 7 ready-to-wear studio garments (Black Bomber Jacket with blue logo, Red Biker Leather, Indigo Denim Trucker, Khaki Trench Coat, Cyberpunk Techwear Hoodie, Navy Tailored Blazer, Tropical Floral Vacation Shirt).
-- **Custom Garment Studio**: Drag-and-drop or upload custom clothing photos with live text prompt editing and style modification chips (+ Sunglasses, + Gold Watch, + Rolled Sleeves).
-- **Dual Display Modes**: Toggle between Picture-in-Picture (PiP) and Side-by-Side (Raw Webcam vs. Transformed VTON Stream).
+- **Curated 3D Wardrobe Presets**: Ready-to-wear luxury studio garments (Crimson Silk Gown, Emerald Velvet Dress, Black Satin Slip Dress, White Floral Sundress, Black Moto Leather Biker).
+- **Custom Garment Studio**: Drag-and-drop or upload custom clothing photos with live text prompt editing.
 - **High-Res Snapshot Downloads**: Capture, watermark, and download snapshots of your virtual try-on looks.
 - **Enterprise-Grade Token Security**: Employs short-lived ephemeral JWT client tokens minted via `/api/realtime-token` (`POST https://api.decart.ai/v1/client/tokens`) to protect your permanent platform API key.
 - **Zero-Dependency Architecture**: Lightweight backend runs out-of-the-box on standard Python 3.10+ or Node.js.
