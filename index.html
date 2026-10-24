@@ -228,28 +228,92 @@
 
   <!-- ═══ SCANNER VIEWFINDER OVERLAY (Hold & Scan Garment) ═══ -->
   <div class="viewfinder-overlay" id="viewfinder-overlay">
+    <!-- Live Camera Feed Input Preview -->
+    <video id="scanner-live-preview" class="scanner-live-preview" autoplay playsinline muted></video>
+
+    <!-- Top Guidance & Header -->
     <div class="viewfinder-header">
-      <span class="viewfinder-title">hold up your garment</span>
-      <span class="viewfinder-sub">center the t-shirt / clothing item inside the frame</span>
+      <div class="viewfinder-badge">
+        <span class="pulse-ring"></span>
+        <span class="badge-text">SMART STORE MIRROR</span>
+      </div>
+      <span class="viewfinder-title">hold & scan garment</span>
+      <div class="hud-instruction-bar">
+        <span class="hud-step">hold flat</span>
+        <span class="hud-sep">•</span>
+        <span class="hud-step">align shoulders</span>
+        <span class="hud-sep">•</span>
+        <span class="hud-step">center graphic</span>
+      </div>
     </div>
 
+    <!-- Center HUD Viewfinder Frame -->
     <div class="viewfinder-frame" id="viewfinder-frame">
-      <div class="reticle-corner top-left"></div>
-      <div class="reticle-corner top-right"></div>
-      <div class="reticle-corner bottom-left"></div>
-      <div class="reticle-corner bottom-right"></div>
+      <!-- Reticle Corners with Telemetry Labels -->
+      <div class="reticle-corner top-left"><span class="hud-corner-tag">ALIGN·TL</span></div>
+      <div class="reticle-corner top-right"><span class="hud-corner-tag">ALIGN·TR</span></div>
+      <div class="reticle-corner bottom-left"><span class="hud-corner-tag">CROP·BL</span></div>
+      <div class="reticle-corner bottom-right"><span class="hud-corner-tag">CROP·BR</span></div>
       
+      <!-- Sweeping Laser Scan Line -->
       <div class="scan-laser-line"></div>
 
-      <div class="tshirt-silhouette-guide">
-        <svg viewBox="0 0 100 100" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1.8" stroke-dasharray="4 3">
-          <path d="M 30,15 L 42,22 C 45,26 55,26 58,22 L 70,15 L 88,32 L 78,42 L 70,36 L 70,85 C 70,87 68,89 66,89 L 34,89 C 32,89 30,87 30,85 L 30,36 L 22,42 L 12,32 Z"/>
-        </svg>
+      <!-- Garment HUD Guides -->
+      <div class="garment-hud-overlay">
+        <!-- 1. Shoulder & Hanger Alignment Bar -->
+        <div class="hud-shoulder-guide">
+          <div class="hud-guide-line"></div>
+          <div class="hud-guide-badge">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2v4M5 10l7-4 7 4M5 10v6a7 7 0 0 0 14 0v-6"></path>
+            </svg>
+            <span>SHOULDERS / HANGER</span>
+          </div>
+          <div class="hud-guide-line"></div>
+        </div>
+
+        <!-- 2. Collar Arc Notch -->
+        <div class="hud-collar-notch">
+          <svg width="56" height="24" viewBox="0 0 56 24" fill="none">
+            <path d="M 6 2 C 16 20, 40 20, 50 2" stroke="rgba(0, 242, 254, 0.85)" stroke-width="2" stroke-dasharray="4 3"/>
+          </svg>
+          <span class="hud-tag-micro">COLLAR</span>
+        </div>
+
+        <!-- 3. Chest & Logo Target Zone -->
+        <div class="hud-target-chest">
+          <div class="hud-crosshair-h"></div>
+          <div class="hud-crosshair-v"></div>
+          <div class="hud-chest-box">
+            <span class="hud-chest-label">CHEST / GRAPHIC ZONE</span>
+          </div>
+        </div>
+
+        <!-- 4. Subtle T-Shirt Silhouette Outline Guide -->
+        <div class="tshirt-silhouette-guide">
+          <svg viewBox="0 0 100 115" fill="none" stroke="rgba(0, 242, 254, 0.45)" stroke-width="1.8" stroke-dasharray="4 3">
+            <path d="M 30,14 L 41,20 C 44,24 56,24 59,20 L 70,14 L 89,32 L 78,44 L 70,38 L 70,102 C 70,105 67,107 64,107 L 36,107 C 33,107 30,105 30,102 L 30,38 L 22,44 L 11,32 Z"/>
+          </svg>
+        </div>
+
+        <!-- 5. Hem / Bottom Boundary Guide -->
+        <div class="hud-hem-guide">
+          <div class="hud-guide-line"></div>
+          <div class="hud-guide-badge">
+            <span>BOTTOM HEM LINE</span>
+          </div>
+          <div class="hud-guide-line"></div>
+        </div>
       </div>
 
-      <div class="countdown-display" id="scan-countdown">3</div>
+      <!-- Live 5-Second Countdown Badge -->
+      <div class="countdown-wrap">
+        <div class="countdown-display" id="scan-countdown">5</div>
+        <span class="countdown-sub">hold steady</span>
+      </div>
     </div>
 
+    <!-- Viewfinder Action Controls -->
     <div class="viewfinder-controls">
       <button class="btn-ghost" id="btn-cancel-scan">cancel</button>
       <button class="btn-apply btn-snap-now" id="btn-snap-now">
@@ -275,6 +339,7 @@
       <div class="scan-card-body">
         <div class="scan-thumb-wrap">
           <img id="scan-result-thumb" class="scan-result-img" alt="Captured Garment">
+          <button type="button" class="btn-thumb-flip" id="btn-flip-scan-thumb" title="Flip image horizontally">⇋ flip</button>
         </div>
 
         <div class="scan-options">
@@ -314,6 +379,6 @@
   <!-- Keep old IDs alive for JS compat -->
   <span id="btn-stream-label" style="display:none;">Start Try-On</span>
 
-  <script type="module" src="app.js?v=8"></script>
+  <script type="module" src="app.js?v=10"></script>
 </body>
 </html>

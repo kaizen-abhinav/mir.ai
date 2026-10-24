@@ -86,14 +86,17 @@ const elements = {
   // Retail Store Scan Elements
   btnScanGarment: document.getElementById("btn-scan-garment"),
   btnDockScan: document.getElementById("btn-dock-scan"),
+  btnStandbyScan: document.getElementById("btn-standby-scan"),
   viewfinderOverlay: document.getElementById("viewfinder-overlay"),
   viewfinderFrame: document.getElementById("viewfinder-frame"),
+  scannerLivePreview: document.getElementById("scanner-live-preview"),
   scanCountdown: document.getElementById("scan-countdown"),
   btnCancelScan: document.getElementById("btn-cancel-scan"),
   btnSnapNow: document.getElementById("btn-snap-now"),
   shutterFlash: document.getElementById("shutter-flash"),
   scanResultOverlay: document.getElementById("scan-result-overlay"),
   scanResultThumb: document.getElementById("scan-result-thumb"),
+  btnFlipScanThumb: document.getElementById("btn-flip-scan-thumb"),
   scanPromptInput: document.getElementById("scan-prompt-input"),
   btnCloseScanResult: document.getElementById("btn-close-scan-result"),
   btnRetakeScan: document.getElementById("btn-retake-scan"),
@@ -773,7 +776,63 @@ function playScanChime(freq = 700, duration = 0.08) {
   } catch (_) {}
 }
 
-// Start Store Scan Mode (Viewfinder + 3-2-1 Countdown)
+// Calculate exact crop coordinates mapping screen frame to native video buffer
+function getFrameCropCoordinates(video, frameEl, containerEl) {
+  const vw = video.videoWidth || 1280;
+  const vh = video.videoHeight || 720;
+  
+  const cRect = containerEl ? containerEl.getBoundingClientRect() : { width: window.innerWidth, height: window.innerHeight, left: 0, top: 0 };
+  const fRect = frameEl ? frameEl.getBoundingClientRect() : null;
+
+  if (!fRect || !cRect.width || !cRect.height) {
+    const cropW = Math.round(vw * 0.55);
+    const cropH = Math.round(vh * 0.70);
+    return {
+      cropX: Math.round((vw - cropW) / 2),
+      cropY: Math.round((vh - cropH) / 2),
+      cropW,
+      cropH
+    };
+  }
+
+  const containerW = cRect.width;
+  const containerH = cRect.height;
+
+  // object-fit: cover scaling
+  const scale = Math.max(containerW / vw, containerH / vh);
+  const renderedW = vw * scale;
+  const renderedH = vh * scale;
+  const offsetX = (containerW - renderedW) / 2;
+  const offsetY = (containerH - renderedH) / 2;
+
+  // Screen coordinates of frame relative to container
+  const frameLeftRel = fRect.left - cRect.left;
+  const frameTopRel = fRect.top - cRect.top;
+  const frameW = fRect.width;
+  const frameH = fRect.height;
+
+  // If live preview is mirrored on screen (standard selfie view), the x-position on screen is reversed
+  const isMirrored = state.isMirrored;
+  const effectiveScreenX = isMirrored 
+    ? (containerW - (frameLeftRel + frameW)) 
+    : frameLeftRel;
+
+  // Convert to native video buffer coordinates
+  const nativeX = (effectiveScreenX - offsetX) / scale;
+  const nativeY = (frameTopRel - offsetY) / scale;
+  const nativeW = frameW / scale;
+  const nativeH = frameH / scale;
+
+  // Clamp safely within video dimensions
+  const cropX = Math.max(0, Math.min(vw - 1, Math.round(nativeX)));
+  const cropY = Math.max(0, Math.min(vh - 1, Math.round(nativeY)));
+  const cropW = Math.max(1, Math.min(vw - cropX, Math.round(nativeW)));
+  const cropH = Math.max(1, Math.min(vh - cropY, Math.round(nativeH)));
+
+  return { cropX, cropY, cropW, cropH };
+}
+
+// Start Store Scan Mode (Live Preview + Garment HUD + 5-Second Countdown)
 async function startGarmentScanner() {
   if (!elements.viewfinderOverlay) return;
 
@@ -788,26 +847,44 @@ async function startGarmentScanner() {
     }
   }
 
-  // 2. Open viewfinder overlay
-  elements.viewfinderOverlay.classList.add("active");
-  state.scanSecondsLeft = 3;
-  if (elements.scanCountdown) {
-    elements.scanCountdown.textContent = "3";
-    elements.scanCountdown.style.display = "block";
+  // 2. Attach live camera stream to scanner preview element
+  if (elements.scannerLivePreview && state.localStream) {
+    elements.scannerLivePreview.style.transform = state.isMirrored ? "scaleX(-1)" : "none";
+    if (elements.scannerLivePreview.srcObject !== state.localStream) {
+      elements.scannerLivePreview.srcObject = state.localStream;
+    }
+    elements.scannerLivePreview.play().catch(() => {});
   }
 
-  addLog("Store Scan Mode: Hold up t-shirt / garment in front of camera.", "info");
-  playScanChime(650, 0.1);
+  // 3. Open viewfinder overlay
+  elements.viewfinderOverlay.classList.add("active");
+  state.scanSecondsLeft = 5;
+  if (elements.scanCountdown) {
+    elements.scanCountdown.textContent = "5";
+    elements.scanCountdown.style.display = "block";
+    elements.scanCountdown.style.animation = "none";
+    void elements.scanCountdown.offsetWidth;
+    elements.scanCountdown.style.animation = "";
+  }
 
-  // 3. Clear any existing timer
+  addLog("Store Scan Mode: Place t-shirt / garment within HUD guides (5s timer started).", "info");
+  playScanChime(550, 0.1);
+
+  // 4. Clear any existing timer
   if (state.scanTimerId) clearInterval(state.scanTimerId);
 
-  // 4. Run 3-2-1 countdown
+  // 5. Run 5-second countdown with rising tones
   state.scanTimerId = setInterval(() => {
     state.scanSecondsLeft--;
     if (state.scanSecondsLeft > 0) {
-      if (elements.scanCountdown) elements.scanCountdown.textContent = String(state.scanSecondsLeft);
-      playScanChime(750 + (3 - state.scanSecondsLeft) * 120, 0.08);
+      if (elements.scanCountdown) {
+        elements.scanCountdown.textContent = String(state.scanSecondsLeft);
+        elements.scanCountdown.style.animation = "none";
+        void elements.scanCountdown.offsetWidth;
+        elements.scanCountdown.style.animation = "";
+      }
+      // Rising chime per second from 5 down to 1
+      playScanChime(550 + (5 - state.scanSecondsLeft) * 110, 0.08);
     } else {
       clearInterval(state.scanTimerId);
       state.scanTimerId = null;
@@ -832,42 +909,26 @@ function captureHeldGarmentCrop() {
   cancelGarmentScanner();
 
   // Play shutter chime & trigger flash
-  playScanChime(1300, 0.18);
+  playScanChime(1350, 0.2);
   if (elements.shutterFlash) {
     elements.shutterFlash.classList.add("flash");
     setTimeout(() => elements.shutterFlash.classList.remove("flash"), 400);
   }
 
-  const video = elements.videoLocal;
+  const video = (elements.scannerLivePreview && elements.scannerLivePreview.videoWidth) 
+    ? elements.scannerLivePreview 
+    : elements.videoLocal;
+
   if (!video || !video.videoWidth) {
     showToast("No active webcam frame to capture garment from!", "error");
     return;
   }
 
-  const vw = video.videoWidth;
-  const vh = video.videoHeight;
-
-  // Calculate crop rectangle matching viewfinder frame relative to viewport
-  let cropX = 0, cropY = 0, cropW = vw, cropH = vh;
-  const frameRect = elements.viewfinderFrame ? elements.viewfinderFrame.getBoundingClientRect() : null;
-  const viewRect = elements.stageViewport ? elements.stageViewport.getBoundingClientRect() : null;
-
-  if (frameRect && viewRect && viewRect.width > 0 && viewRect.height > 0) {
-    const rx = (frameRect.left - viewRect.left) / viewRect.width;
-    const ry = (frameRect.top - viewRect.top) / viewRect.height;
-    const rw = frameRect.width / viewRect.width;
-    const rh = frameRect.height / viewRect.height;
-
-    cropX = Math.max(0, Math.round(rx * vw));
-    cropY = Math.max(0, Math.round(ry * vh));
-    cropW = Math.min(vw - cropX, Math.round(rw * vw));
-    cropH = Math.min(vh - cropY, Math.round(rh * vh));
-  } else {
-    cropW = Math.round(vw * 0.55);
-    cropH = Math.round(vh * 0.70);
-    cropX = Math.round((vw - cropW) / 2);
-    cropY = Math.round((vh - cropH) / 2);
-  }
+  const { cropX, cropY, cropW, cropH } = getFrameCropCoordinates(
+    video, 
+    elements.viewfinderFrame, 
+    elements.viewfinderOverlay
+  );
 
   // Render to offscreen canvas
   const canvas = document.createElement("canvas");
@@ -875,19 +936,12 @@ function captureHeldGarmentCrop() {
   canvas.height = cropH;
   const ctx = canvas.getContext("2d");
 
-  // Correct for selfie camera mirror so graphics / logos on garment are not backwards
-  if (state.isMirrored) {
-    ctx.translate(cropW, 0);
-    ctx.scale(-1, 1);
-    const mirroredSrcX = vw - (cropX + cropW);
-    ctx.drawImage(video, mirroredSrcX, cropY, cropW, cropH, 0, 0, cropW, cropH);
-  } else {
-    ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
-  }
+  // Draw crop from native camera track
+  ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
 
   const garmentDataUrl = canvas.toDataURL("image/jpeg", 0.94);
   state.lastScannedGarmentDataUrl = garmentDataUrl;
-  addLog("Successfully extracted held garment snapshot.", "success");
+  addLog(`Successfully extracted held garment snapshot (${cropW}x${cropH}).`, "success");
 
   // Show confirmation / project dialog
   showScanResultDialog(garmentDataUrl);
@@ -1055,7 +1109,27 @@ function setupEventListeners() {
     elements.btnToggleMirror.addEventListener("click", () => {
       state.isMirrored = !state.isMirrored;
       if (elements.videoLocal) elements.videoLocal.style.transform = state.isMirrored ? "scaleX(-1)" : "none";
+      if (elements.scannerLivePreview) elements.scannerLivePreview.style.transform = state.isMirrored ? "scaleX(-1)" : "none";
       elements.btnToggleMirror.classList.toggle("active", state.isMirrored);
+    });
+  }
+
+  // Scanned Garment Thumbnail Flip Button
+  if (elements.btnFlipScanThumb && elements.scanResultThumb) {
+    elements.btnFlipScanThumb.addEventListener("click", () => {
+      const img = elements.scanResultThumb;
+      if (!img.src) return;
+      const c = document.createElement("canvas");
+      c.width = img.naturalWidth || 400;
+      c.height = img.naturalHeight || 500;
+      const ctx = c.getContext("2d");
+      ctx.translate(c.width, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(img, 0, 0);
+      const flipped = c.toDataURL("image/jpeg", 0.94);
+      img.src = flipped;
+      state.lastScannedGarmentDataUrl = flipped;
+      addLog("Flipped scanned garment orientation.", "info");
     });
   }
 

@@ -1110,13 +1110,12 @@ input:checked + .toggle-track::before {
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
-  padding: 36px 20px 48px;
-  background: radial-gradient(circle at center, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0.75) 100%);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  padding: 24px 20px 32px;
+  background: transparent;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.35s ease;
+  overflow: hidden;
 }
 
 .viewfinder-overlay.active {
@@ -1124,44 +1123,106 @@ input:checked + .toggle-track::before {
   pointer-events: auto;
 }
 
+/* Scanner Live Camera Preview (Selfie/Mirror Mode) */
+.scanner-live-preview {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+  pointer-events: none;
+  transform: scaleX(-1);
+  transition: transform 0.2s ease;
+}
+
 .viewfinder-header {
+  position: relative;
+  z-index: 10;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   animation: fadeInDown 0.4s ease forwards;
+}
+
+.viewfinder-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 242, 254, 0.08);
+  border: 1px solid rgba(0, 242, 254, 0.25);
+  border-radius: 999px;
+  padding: 3px 10px;
+  margin-bottom: 6px;
+}
+
+.pulse-ring {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 8px var(--cyan);
+  animation: pulseDot 1.5s infinite;
+}
+
+.badge-text {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  color: var(--cyan);
 }
 
 .viewfinder-title {
   display: block;
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 500;
   letter-spacing: 2px;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, 0.95);
   text-transform: lowercase;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
 }
 
-.viewfinder-sub {
-  display: block;
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.45);
-  letter-spacing: 1px;
-  margin-top: 4px;
-}
-
-/* Center Scanning Frame */
-.viewfinder-frame {
-  position: relative;
-  width: min(340px, 80vw);
-  height: min(440px, 60vh);
-  border-radius: 24px;
-  border: 1px dashed rgba(255, 255, 255, 0.25);
-  background: rgba(255, 255, 255, 0.02);
+.hud-instruction-bar {
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
-  box-shadow: 0 0 50px rgba(0, 0, 0, 0.6), inset 0 0 40px rgba(120, 220, 255, 0.05);
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 0.5px;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
 }
 
-/* Glowing Corner Brackets */
+.hud-step {
+  font-family: var(--font);
+}
+
+.hud-sep {
+  color: var(--cyan);
+  opacity: 0.7;
+}
+
+/* Center Scanning Frame & Dark Screen Mask */
+.viewfinder-frame {
+  position: relative;
+  z-index: 5;
+  width: min(360px, 84vw);
+  height: min(480px, 64vh);
+  border-radius: 24px;
+  border: 1.5px dashed rgba(0, 242, 254, 0.5);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 72% dark shroud around the frame so live video shines through inside */
+  box-shadow: 0 0 0 9999px rgba(6, 9, 15, 0.72), 0 0 35px rgba(0, 242, 254, 0.35);
+  user-select: none;
+}
+
+/* Glowing Corner Brackets with Telemetry Labels */
 .reticle-corner {
   position: absolute;
   width: 28px;
@@ -1169,6 +1230,7 @@ input:checked + .toggle-track::before {
   border-color: var(--cyan);
   border-style: solid;
   pointer-events: none;
+  z-index: 4;
 }
 
 .reticle-corner.top-left {
@@ -1199,6 +1261,21 @@ input:checked + .toggle-track::before {
   border-bottom-right-radius: 12px;
 }
 
+.hud-corner-tag {
+  position: absolute;
+  font-family: var(--mono);
+  font-size: 7.5px;
+  letter-spacing: 1px;
+  color: rgba(0, 242, 254, 0.75);
+  padding: 1px 3px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.reticle-corner.top-left .hud-corner-tag { top: -15px; left: 0; }
+.reticle-corner.top-right .hud-corner-tag { top: -15px; right: 0; }
+.reticle-corner.bottom-left .hud-corner-tag { bottom: -15px; left: 0; }
+.reticle-corner.bottom-right .hud-corner-tag { bottom: -15px; right: 0; }
+
 /* Sweeping Laser Line */
 .scan-laser-line {
   position: absolute;
@@ -1208,6 +1285,7 @@ input:checked + .toggle-track::before {
   background: linear-gradient(90deg, transparent, var(--cyan), #fff, var(--cyan), transparent);
   box-shadow: 0 0 14px 2px var(--cyan);
   top: 0;
+  z-index: 4;
   animation: scanSweep 2.2s ease-in-out infinite alternate;
 }
 
@@ -1217,45 +1295,191 @@ input:checked + .toggle-track::before {
   100% { top: 94%; opacity: 0.3; }
 }
 
-/* T-Shirt Silhouette Guide Watermark */
-.tshirt-silhouette-guide {
-  width: 65%;
-  height: 65%;
+/* ═════ GARMENT HUD GUIDES ═════ */
+.garment-hud-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 14px 14px;
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* 1. Shoulder & Hanger Alignment Bar */
+.hud-shoulder-guide {
+  width: 92%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.hud-guide-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 242, 254, 0.7), rgba(0, 242, 254, 0.7), transparent);
+  border-top: 1px dashed rgba(0, 242, 254, 0.6);
+}
+
+.hud-guide-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(6, 9, 15, 0.75);
+  border: 1px solid rgba(0, 242, 254, 0.5);
+  border-radius: 999px;
+  padding: 3px 9px;
+  font-family: var(--mono);
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  color: var(--cyan);
+  text-shadow: 0 0 6px rgba(0, 242, 254, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* 2. Collar Arc Notch */
+.hud-collar-notch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: -6px;
+  filter: drop-shadow(0 0 4px rgba(0, 242, 254, 0.4));
+}
+
+.hud-tag-micro {
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 1.5px;
+  color: rgba(255, 255, 255, 0.75);
+  margin-top: 1px;
+}
+
+/* 3. Chest & Logo Target Zone */
+.hud-target-chest {
+  position: absolute;
+  top: 48%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 140px;
+  height: 96px;
+  border: 1px dashed rgba(0, 242, 254, 0.35);
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   pointer-events: none;
-  opacity: 0.6;
+  background: rgba(0, 242, 254, 0.03);
+}
+
+.hud-crosshair-h {
+  position: absolute;
+  left: -12px;
+  right: -12px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 242, 254, 0.6), transparent);
+}
+
+.hud-crosshair-v {
+  position: absolute;
+  top: -12px;
+  bottom: -12px;
+  width: 1px;
+  background: linear-gradient(180deg, transparent, rgba(0, 242, 254, 0.6), transparent);
+}
+
+.hud-chest-box {
+  background: rgba(6, 9, 15, 0.7);
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 242, 254, 0.3);
+}
+
+.hud-chest-label {
+  font-family: var(--mono);
+  font-size: 8px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* 4. Hem Guide */
+.hud-hem-guide {
+  width: 88%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+/* Silhouette Guide */
+.tshirt-silhouette-guide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0.55;
+  filter: drop-shadow(0 0 8px rgba(0, 242, 254, 0.25));
 }
 
 .tshirt-silhouette-guide svg {
-  width: 100%;
-  height: 100%;
+  width: 78%;
+  height: 78%;
 }
 
-/* Countdown Badge */
-.countdown-display {
+/* ═════ COUNTDOWN WRAPPER & DIGITS ═════ */
+.countdown-wrap {
   position: absolute;
-  font-size: 68px;
-  font-weight: 300;
-  color: #fff;
-  text-shadow: 0 0 30px rgba(120, 220, 255, 0.8), 0 0 10px #000;
-  animation: countPulse 1s ease-in-out infinite;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   pointer-events: none;
 }
 
+.countdown-display {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 76px;
+  font-weight: 200;
+  line-height: 1;
+  color: #ffffff;
+  text-shadow: 
+    0 0 25px rgba(0, 242, 254, 0.9), 
+    0 0 50px rgba(0, 242, 254, 0.4),
+    0 2px 10px rgba(0, 0, 0, 0.9);
+  animation: countPulse 1s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+.countdown-sub {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: rgba(0, 242, 254, 0.85);
+  text-transform: uppercase;
+  margin-top: 4px;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+}
+
 @keyframes countPulse {
-  0% { transform: scale(1.3); opacity: 0.4; }
+  0% { transform: scale(1.22); opacity: 0.4; }
   50% { transform: scale(1); opacity: 1; }
-  100% { transform: scale(0.9); opacity: 0.8; }
+  100% { transform: scale(0.92); opacity: 0.8; }
 }
 
 /* Controls below frame */
 .viewfinder-controls {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 16px;
-  z-index: 5;
+  z-index: 10;
 }
 
 .btn-snap-now {
@@ -1345,6 +1569,7 @@ input:checked + .toggle-track::before {
 }
 
 .scan-thumb-wrap {
+  position: relative;
   width: 120px;
   height: 150px;
   flex-shrink: 0;
@@ -1359,6 +1584,30 @@ input:checked + .toggle-track::before {
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+.btn-thumb-flip {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(6, 9, 15, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.85);
+  border-radius: 6px;
+  padding: 3px 7px;
+  font-size: 10.5px;
+  font-family: var(--mono);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  z-index: 2;
+}
+
+.btn-thumb-flip:hover {
+  background: rgba(0, 242, 254, 0.25);
+  border-color: var(--cyan);
+  color: #fff;
 }
 
 .scan-options {
