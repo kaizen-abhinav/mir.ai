@@ -2,31 +2,47 @@
 
 <div align="center">
 
-![mir.ai Banner](https://img.shields.io/badge/mir.ai-Virtual%20Try--On%20Studio-00f2fe?style=for-the-badge&logo=sparkles)
+[![Live App](https://img.shields.io/badge/Live%20App-mir--ai--2g63.onrender.com-00f2fe?style=for-the-badge&logo=render)](https://mir-ai-2g63.onrender.com/)
+[![Video Demo](https://img.shields.io/badge/Video%20Demo-Watch%20Walkthrough-ea4335?style=for-the-badge&logo=googledrive)](https://drive.google.com/file/d/1ewP4kQpb6wuX07_5iydvyP4PF-rfX_N2/view?usp=sharing)
 ![Decart AI](https://img.shields.io/badge/Powered%20By-Decart.ai%20Lucy%20VTON-4facfe?style=for-the-badge)
 ![WebRTC](https://img.shields.io/badge/Stream-WebRTC%20LiveKit-8a2be2?style=for-the-badge)
-![Fast Mode](https://img.shields.io/badge/Fast%20Mode-2x%20Low%20Latency-10b981?style=for-the-badge)
+![Liquid Glass](https://img.shields.io/badge/UI-True%20Liquid%20Glass-10b981?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-f59e0b?style=for-the-badge)
 
 <p align="center">
   <strong>Next-generation live virtual clothing try-on powered by Decart.ai Lucy VTON 3.6 & 3.5 over ultra-low-latency WebRTC.</strong>
 </p>
 
+### 🌐 [Launch Live Web App](https://mir-ai-2g63.onrender.com/) ✦ 🎬 [Watch Full Video Demo](https://drive.google.com/file/d/1ewP4kQpb6wuX07_5iydvyP4PF-rfX_N2/view?usp=sharing)
+
 </div>
+
+---
+
+## 🔗 Live Deployments & Demo
+
+* 🚀 **Production URL**: [https://mir-ai-2g63.onrender.com/](https://mir-ai-2g63.onrender.com/) *(HTTPS active for instant camera access)*
+* 🎥 **Video Demo Walkthrough**: [Watch on Google Drive](https://drive.google.com/file/d/1ewP4kQpb6wuX07_5iydvyP4PF-rfX_N2/view?usp=sharing)
 
 ---
 
 ## 📖 Overview
 
-**mir.ai** is a real-time WebRTC Virtual Try-On (VTON) system that projects garments onto a live video stream captured from your laptop webcam. Powered by **Decart AI's `lucy-vton-3.6`** generative video pipeline, **mir.ai** allows users to see garments mapped onto their body in real time with realistic fabric drape, lighting, and temporal consistency—enabling on-the-fly outfit changes in sub-second intervals without reconnecting the media session.
+**mir.ai** is a real-time WebRTC Virtual Try-On (VTON) system that projects garments onto a live video stream captured from your webcam. Powered by **Decart AI's `lucy-vton-3.6`** generative video pipeline, **mir.ai** allows users to see garments mapped onto their body in real time with realistic fabric drape, lighting, and temporal consistency—enabling on-the-fly outfit changes in sub-second intervals without reconnecting the media session.
 
 ---
 
-## ✨ Features
+## ✨ Key Features
 
-- **Retail Store "Hold & Scan" Mode**: Walk up holding any physical t-shirt, shirt, or dress. An interactive 3-2-1 viewfinder isolates and extracts the garment from the camera feed, automatically corrects for mirror orientation, and projects it onto you in real time!
+- **Retail Store "Hold & Scan" HUD**: Walk in front of the camera holding any physical t-shirt or garment. The smart optical scanner isolates and extracts the garment, displays full-frame live preview behind a high-tech alignment HUD (shoulder guide, collar scoop notch, chest target reticle, and hem boundary), automatically unmirrors graphics/logos, and projects it directly onto you!
+- **True Liquid Glass UI**: Custom optical squircle refraction engine utilizing SVG `<feDisplacementMap>` + `<feComponentTransfer>`, canvas-baked specular rim highlights, pointer-tracked internal glow, and real-time second-order spring physics on all controls.
+- **Credit Saver & Eco Suite**:
+  - **Standard Mode (2 credits/sec)**: Reduces credit burn by 50% vs Fast Mode (4 credits/sec).
+  - **Smart Idle Auto-Sleep**: Automatically pauses the WebRTC stream after 45s of inactivity to prevent accidental credit drainage, keeping the local mirror active with a tap-to-resume banner.
+  - **Zero-Credit Scanning**: Automatically suspends AI billing during garment positioning and countdown.
+  - **Eco Snapshot Burst Mode**: Renders outfit for ~3.5 seconds, freezes high-res try-on frame, and disconnects WebRTC (~7 credits per outfit = **140+ try-ons per 1,000 credits**).
+  - **Live Credit Watchdog**: Real-time HUD pill displaying session uptime and estimated credits spent.
 - **Decart `lucy-vton-3.6` & `3.5` Native Support**: High-definition 720p virtual try-on with state-of-the-art cloth deformation and movement tracking.
-- **Fast Mode (`speed: "fast"`)**: Sub-second end-to-end streaming latency utilizing Decart's high-throughput compute tier.
 - **Atomic Garment Swapping (`set()`)**: Switch outfits instantly using `realtimeClient.set({ prompt, image })` without tearing down WebRTC peer connections.
 - **Curated 3D Wardrobe Presets**: Ready-to-wear luxury studio garments (Crimson Silk Gown, Emerald Velvet Dress, Black Satin Slip Dress, White Floral Sundress, Black Moto Leather Biker).
 - **Custom Garment Studio**: Drag-and-drop or upload custom clothing photos with live text prompt editing.
@@ -273,9 +289,11 @@ asyncio.run(main())
 mir.ai/
 ├── index.html              # Modern WebRTC try-on studio interface
 ├── app.js                  # Frontend client logic & WebRTC session manager
-├── style.css               # Cyber-fashion dark theme styling
+├── liquid-glass.js         # True Liquid Glass optical refraction & spring physics engine
+├── style.css               # Cyber-fashion dark theme styling & liquid glass materials
 ├── server.py               # Zero-dependency Python 3 backend server & token proxy
 ├── server.js               # Node.js backend alternative
+├── requirements.txt        # Production Python requirements for Render / cloud hosting
 ├── package.json            # Project metadata & npm scripts
 ├── start.sh                # Executable startup launcher
 ├── .env.example            # Environment variables template
@@ -292,6 +310,20 @@ mir.ai/
 │   └── floral-shirt.png
 └── uploads/                # Custom user garment storage
 ```
+
+---
+
+## ☁️ Deployment
+
+**mir.ai** is deployed live on [Render](https://render.com) with automatic HTTPS (mandatory for browser webcam permissions).
+
+* **Live URL**: [https://mir-ai-2g63.onrender.com/](https://mir-ai-2g63.onrender.com/)
+* **Build Command**: `pip install -r requirements.txt`
+* **Start Command**: `python3 server.py`
+* **Environment Variables**:
+  * `DECART_API_KEY`: *(Configured in Render dashboard environment settings)*
+  * `DECART_MODEL`: `lucy-vton-3.6`
+  * `DECART_SPEED`: `standard`
 
 ---
 
