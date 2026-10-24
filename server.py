@@ -66,7 +66,7 @@ class VTONRequestHandler(SimpleHTTPRequestHandler):
                 "hasServerApiKey": bool(api_key),
                 "apiKey": api_key,
                 "model": model_name,
-                "defaultSpeed": os.environ.get("DECART_SPEED", "fast")
+                "defaultSpeed": os.environ.get("DECART_SPEED", "standard")
             }
             self.wfile.write(json.dumps(response_data).encode("utf-8"))
             return

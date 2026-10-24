@@ -25,6 +25,15 @@
     <!-- Model Output Stream -->
     <video id="video-output" autoplay playsinline></video>
 
+    <!-- Eco Snapshot Freeze Frame View -->
+    <div class="freeze-frame-view" id="freeze-frame-view" style="display: none;">
+      <img id="freeze-frame-img" class="freeze-frame-img" alt="Try-On Snapshot">
+      <div class="freeze-frame-bar">
+        <span class="freeze-badge">✨ ECO SNAPSHOT SAVED (~7 CREDS)</span>
+        <button class="btn-ghost" id="btn-unfreeze-stream">▶ resume live stream</button>
+      </div>
+    </div>
+
     <!-- Standby State -->
     <div class="standby" id="stage-placeholder">
       <div class="standby-inner">
@@ -42,11 +51,18 @@
       <video id="video-local" autoplay playsinline muted></video>
     </div>
 
-    <!-- ═══ TOP-LEFT: Brand + Status ═══ -->
+    <!-- ═══ TOP-LEFT: Brand + Status + Credit Watchdog ═══ -->
     <div class="hud-tl">
       <span class="wordmark">mir.ai</span>
       <span class="status-dot" id="status-dot"></span>
       <span class="status-label" id="status-text">offline</span>
+      <!-- Live Credit & Session Watchdog Pill -->
+      <div class="credit-watchdog-pill" id="credit-watchdog-pill" style="display: none;">
+        <span class="credit-icon">⚡</span>
+        <span class="credit-val" id="credit-counter">~0 cr</span>
+        <span class="credit-sep">·</span>
+        <span class="session-timer" id="telemetry-timer">00:00</span>
+      </div>
     </div>
 
     <!-- ═══ TOP-RIGHT: Tiny Action Icons ═══ -->
@@ -62,6 +78,12 @@
       <button class="hud-btn" id="btn-toggle-stream" title="Connect / Disconnect">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
           <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </svg>
+      </button>
+      <button class="hud-btn" id="btn-pause-stream" title="Pause AI (Save Credits)" style="display: none;">
+        <svg id="icon-pause-stream" width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+          <rect x="6" y="4" width="4" height="16"></rect>
+          <rect x="14" y="4" width="4" height="16"></rect>
         </svg>
       </button>
       <button class="hud-btn" id="btn-snapshot" title="Capture">
@@ -183,12 +205,30 @@
         <div class="field-row">
           <div class="field-row-label">
             <span>fast mode</span>
-            <span class="field-hint">2× throughput</span>
+            <span class="field-hint">4 cr/s (fast) vs 2 cr/s (standard)</span>
           </div>
           <label class="toggle">
-            <input type="checkbox" id="toggle-fast-mode" checked>
+            <input type="checkbox" id="toggle-fast-mode">
             <span class="toggle-track"></span>
           </label>
+        </div>
+        <div class="field">
+          <label class="field-label" for="select-tryon-mode">try-on mode</label>
+          <select id="select-tryon-mode" class="field-input">
+            <option value="live">live continuous stream</option>
+            <option value="burst">eco snapshot burst (~7 cr/outfit)</option>
+          </select>
+          <span class="field-hint">eco snapshot gives 100+ try-ons from 1,000 credits</span>
+        </div>
+        <div class="field">
+          <label class="field-label" for="select-idle-timeout">auto-sleep inactivity</label>
+          <select id="select-idle-timeout" class="field-input">
+            <option value="45">45 seconds (recommended)</option>
+            <option value="30">30 seconds (strict)</option>
+            <option value="60">60 seconds</option>
+            <option value="0">disabled</option>
+          </select>
+          <span class="field-hint">pauses AI when user is inactive to save credits</span>
         </div>
         <div class="field">
           <label class="field-label" for="select-camera">camera</label>
@@ -364,6 +404,15 @@
     </div>
   </div>
 
+  <!-- ═══ STREAM AUTO-PAUSE / SLEEP BANNER ═══ -->
+  <div class="idle-banner" id="idle-banner" style="display: none;">
+    <div class="idle-banner-glass">
+      <div class="idle-badge">CREDIT SAVER ACTIVE</div>
+      <div class="idle-msg">AI stream automatically paused to prevent credit drain.</div>
+      <button class="btn-apply btn-resume-idle" id="btn-resume-idle">▶ tap to resume</button>
+    </div>
+  </div>
+
   <!-- Toast -->
   <div class="toast-container" id="toast-container"></div>
 
@@ -372,13 +421,13 @@
 
   <!-- Telemetry hidden spans for JS compatibility -->
   <span id="telemetry-model" style="display:none;">Lucy VTON 3.6</span>
-  <span id="telemetry-speed" style="display:none;">Fast Mode (2x)</span>
+  <span id="telemetry-speed" style="display:none;">Standard</span>
   <span id="telemetry-ice" style="display:none;">new</span>
   <span id="model-pill-badge" style="display:none;">lucy-vton-3.6</span>
 
   <!-- Keep old IDs alive for JS compat -->
   <span id="btn-stream-label" style="display:none;">Start Try-On</span>
 
-  <script type="module" src="app.js?v=10"></script>
+  <script type="module" src="app.js?v=11"></script>
 </body>
 </html>

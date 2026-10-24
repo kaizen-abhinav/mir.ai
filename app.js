@@ -19,20 +19,30 @@ const state = {
   isMuted: true,
   isMirrored: true,
   layoutMode: "pip", // "pip" or "side-by-side"
-  fastMode: true,
+  fastMode: false, // Default to standard mode (2 cr/s instead of 4 cr/s)
+  tryOnMode: "live", // "live" or "burst" (eco snapshot)
+  idleTimeoutSeconds: 45, // Auto-pause after 45s inactivity
+  lastUserActivityTime: Date.now(),
+  creditsUsedThisSession: 0,
+  isPaused: false,
   mirrorMode: "auto",
   selectedCameraId: "",
   activePreset: null,
   presets: [],
   sessionTimerId: null,
   sessionSeconds: 0,
+  idleCheckTimerId: null,
+  burstTimerId: null,
   customGarmentDataUrl: null,
   serverApiKey: "",
   modelName: "lucy-vton-3.6",
   scanTimerId: null,
-  scanSecondsLeft: 3,
+  scanSecondsLeft: 5,
   lastScannedGarmentDataUrl: null,
   selectedScanCategory: "t-shirt",
+  lastAppliedPrompt: null,
+  lastAppliedImage: null,
+  wasConnectedBeforeScan: false,
 };
 
 // DOM Elements
@@ -76,6 +86,18 @@ const elements = {
   toggleFastMode: document.getElementById("toggle-fast-mode"),
   selectCamera: document.getElementById("select-camera"),
   selectMirror: document.getElementById("select-mirror"),
+  selectTryOnMode: document.getElementById("select-tryon-mode"),
+  selectIdleTimeout: document.getElementById("select-idle-timeout"),
+  // Credit Saver & Watchdog Elements
+  creditWatchdogPill: document.getElementById("credit-watchdog-pill"),
+  creditCounter: document.getElementById("credit-counter"),
+  btnPauseStream: document.getElementById("btn-pause-stream"),
+  iconPauseStream: document.getElementById("icon-pause-stream"),
+  idleBanner: document.getElementById("idle-banner"),
+  btnResumeIdle: document.getElementById("btn-resume-idle"),
+  freezeFrameView: document.getElementById("freeze-frame-view"),
+  freezeFrameImg: document.getElementById("freeze-frame-img"),
+  btnUnfreezeStream: document.getElementById("btn-unfreeze-stream"),
   btnToggleLogs: document.getElementById("btn-toggle-logs"),
   btnCloseLogs: document.getElementById("btn-close-logs"),
   btnClearLogs: document.getElementById("btn-clear-logs"),
@@ -143,6 +165,8 @@ function setConnectionStatus(status, text) {
     if (elements.btnToggleStream) elements.btnToggleStream.classList.add("connected");
     if (elements.stagePlaceholder) elements.stagePlaceholder.classList.add("hidden");
     if (elements.telemetryIce) elements.telemetryIce.textContent = "connected";
+    if (elements.creditWatchdogPill) elements.creditWatchdogPill.style.display = "inline-flex";
+    if (elements.btnPauseStream) elements.btnPauseStream.style.display = "flex";
   } else if (status === "connecting") {
     if (elements.btnStreamLabel) elements.btnStreamLabel.textContent = "Connecting...";
     if (elements.btnToggleStream) elements.btnToggleStream.classList.remove("connected");
@@ -152,26 +176,135 @@ function setConnectionStatus(status, text) {
     if (elements.btnToggleStream) elements.btnToggleStream.classList.remove("connected");
     if (elements.stagePlaceholder) elements.stagePlaceholder.classList.remove("hidden");
     if (elements.telemetryIce) elements.telemetryIce.textContent = "idle";
+    if (elements.btnPauseStream) elements.btnPauseStream.style.display = "none";
   }
 }
 
-// Session Timer
+// Session Timer & Credit Burn Watchdog
 function startSessionTimer() {
   stopSessionTimer();
   state.sessionSeconds = 0;
+  state.creditsUsedThisSession = 0;
   if (elements.telemetryTimer) elements.telemetryTimer.textContent = "00:00";
+  if (elements.creditCounter) elements.creditCounter.textContent = "~0 cr";
+  if (elements.creditWatchdogPill) elements.creditWatchdogPill.style.display = "inline-flex";
+  if (elements.btnPauseStream) {
+    elements.btnPauseStream.style.display = "flex";
+    elements.btnPauseStream.classList.remove("btn-paused");
+  }
+
   state.sessionTimerId = setInterval(() => {
     state.sessionSeconds++;
+    const burnRate = state.fastMode ? 4 : 2;
+    state.creditsUsedThisSession += burnRate;
+
     const m = String(Math.floor(state.sessionSeconds / 60)).padStart(2, "0");
     const s = String(state.sessionSeconds % 60).padStart(2, "0");
     if (elements.telemetryTimer) elements.telemetryTimer.textContent = `${m}:${s}`;
+    if (elements.creditCounter) elements.creditCounter.textContent = `~${state.creditsUsedThisSession} cr`;
   }, 1000);
+
+  startIdleWatcher();
 }
 
 function stopSessionTimer() {
   if (state.sessionTimerId) {
     clearInterval(state.sessionTimerId);
     state.sessionTimerId = null;
+  }
+  stopIdleWatcher();
+}
+
+// User Activity Tracking & Smart Auto-Sleep Watchdog
+function recordUserActivity() {
+  state.lastUserActivityTime = Date.now();
+}
+
+function startIdleWatcher() {
+  stopIdleWatcher();
+  state.lastUserActivityTime = Date.now();
+  state.idleCheckTimerId = setInterval(() => {
+    if (!state.isConnected || state.isPaused) return;
+    if (state.idleTimeoutSeconds <= 0) return;
+
+    const elapsed = Date.now() - state.lastUserActivityTime;
+    if (elapsed > state.idleTimeoutSeconds * 1000) {
+      addLog(`Auto-sleep triggered after ${state.idleTimeoutSeconds}s of inactivity. AI paused to save credits.`, "info");
+      pauseWebRTC(true);
+    }
+  }, 2000);
+}
+
+function stopIdleWatcher() {
+  if (state.idleCheckTimerId) {
+    clearInterval(state.idleCheckTimerId);
+    state.idleCheckTimerId = null;
+  }
+}
+
+// Pause WebRTC stream (saves 100% credits while keeping local camera alive)
+function pauseWebRTC(isIdle = false) {
+  if (!state.isConnected && !state.realtimeClient) return;
+
+  if (state.realtimeClient) {
+    try {
+      state.realtimeClient.disconnect();
+    } catch (_) {}
+    state.realtimeClient = null;
+  }
+
+  state.isPaused = true;
+  state.isConnected = false;
+  if (state.sessionTimerId) {
+    clearInterval(state.sessionTimerId);
+    state.sessionTimerId = null;
+  }
+
+  setConnectionStatus("idle", "Paused (AI off)");
+  if (elements.btnToggleStream) elements.btnToggleStream.classList.remove("connected");
+  if (elements.btnPauseStream) {
+    elements.btnPauseStream.style.display = "flex";
+    elements.btnPauseStream.classList.add("btn-paused");
+    elements.btnPauseStream.title = "Resume AI Stream";
+    elements.btnPauseStream.innerHTML = `
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+      </svg>`;
+  }
+
+  if (isIdle && elements.idleBanner) {
+    elements.idleBanner.style.display = "block";
+  }
+
+  showToast(isIdle ? "AI stream auto-paused to save credits" : "AI stream paused (0 credits/sec)", "info");
+}
+
+// Resume WebRTC stream
+async function resumeWebRTC() {
+  if (elements.idleBanner) {
+    elements.idleBanner.style.display = "none";
+  }
+  if (elements.freezeFrameView) {
+    elements.freezeFrameView.style.display = "none";
+  }
+
+  state.isPaused = false;
+  recordUserActivity();
+
+  if (elements.btnPauseStream) {
+    elements.btnPauseStream.classList.remove("btn-paused");
+    elements.btnPauseStream.title = "Pause AI (Save Credits)";
+    elements.btnPauseStream.innerHTML = `
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+        <rect x="6" y="4" width="4" height="16"></rect>
+        <rect x="14" y="4" width="4" height="16"></rect>
+      </svg>`;
+  }
+
+  addLog("Resuming real-time VTON stream...", "info");
+  await connectStream();
+  if (state.lastAppliedPrompt) {
+    await applyGarment(state.lastAppliedPrompt, state.lastAppliedImage || "", "Active Garment");
   }
 }
 
@@ -261,6 +394,18 @@ async function checkServerConfig() {
         state.fastMode = data.defaultSpeed === "fast";
         if (elements.toggleFastMode) elements.toggleFastMode.checked = state.fastMode;
         if (elements.telemetrySpeed) elements.telemetrySpeed.textContent = state.fastMode ? "Fast Mode (2x)" : "Standard";
+      }
+
+      // Load Saved Eco & Try-On Preferences
+      const savedTryOnMode = localStorage.getItem("mir_tryon_mode");
+      if (savedTryOnMode && elements.selectTryOnMode) {
+        state.tryOnMode = savedTryOnMode;
+        elements.selectTryOnMode.value = savedTryOnMode;
+      }
+      const savedIdleTimeout = localStorage.getItem("mir_idle_timeout");
+      if (savedIdleTimeout !== null && elements.selectIdleTimeout) {
+        state.idleTimeoutSeconds = parseInt(savedIdleTimeout, 10);
+        elements.selectIdleTimeout.value = savedIdleTimeout;
       }
     }
   } catch (e) {
@@ -555,6 +700,10 @@ function disconnectStream() {
 
 // Apply Garment (set() replaces full state atomically)
 async function applyGarment(prompt, image, label, thumbUrl) {
+  state.lastAppliedPrompt = prompt;
+  state.lastAppliedImage = image;
+  recordUserActivity();
+
   if (!state.realtimeClient || !state.isConnected) {
     showToast("Please connect the live stream first!", "warn");
     addLog("Cannot apply garment: stream is not connected.", "warn");
@@ -579,6 +728,34 @@ async function applyGarment(prompt, image, label, thumbUrl) {
     addLog(`Successfully applied outfit: "${label || prompt}"`, "success");
     showToast(`Wearing: ${label || 'Custom Garment'}`, "success");
 
+    // Eco Burst Snapshot mode: let Lucy render for 3.5s, grab frame, and pause!
+    if (state.tryOnMode === "burst") {
+      if (state.burstTimerId) clearTimeout(state.burstTimerId);
+      showToast("Rendering Eco Snapshot (~3.5s burst)...", "info");
+
+      state.burstTimerId = setTimeout(() => {
+        state.burstTimerId = null;
+        if (elements.videoOutput && elements.freezeFrameImg && elements.freezeFrameView) {
+          try {
+            const vw = elements.videoOutput.videoWidth || 1280;
+            const vh = elements.videoOutput.videoHeight || 720;
+            const c = document.createElement("canvas");
+            c.width = vw;
+            c.height = vh;
+            const ctx = c.getContext("2d");
+            ctx.drawImage(elements.videoOutput, 0, 0, vw, vh);
+            const dataUrl = c.toDataURL("image/jpeg", 0.95);
+            elements.freezeFrameImg.src = dataUrl;
+            elements.freezeFrameView.style.display = "block";
+            showToast("✨ Eco Snapshot Captured! (Used only ~7 credits)", "success");
+            pauseWebRTC(false);
+          } catch (e) {
+            console.warn("Burst capture error:", e);
+          }
+        }
+      }, 3500);
+    }
+
   } catch (err) {
     addLog(`Failed to apply garment: ${err.message}`, "error");
     showToast(`Failed to update garment: ${err.message}`, "error");
@@ -588,6 +765,7 @@ async function applyGarment(prompt, image, label, thumbUrl) {
 // Apply Preset
 async function applyPreset(preset) {
   state.activePreset = preset;
+  recordUserActivity();
   
   document.querySelectorAll(".preset-card").forEach(c => {
     c.classList.toggle("active", c.dataset.id === preset.id);
@@ -601,7 +779,14 @@ async function applyPreset(preset) {
     if (elements.activeOutfitTitle) elements.activeOutfitTitle.textContent = preset.name.toLowerCase();
     if (elements.activeOutfitThumb) elements.activeOutfitThumb.src = preset.imageUrl;
     if (elements.customPrompt) elements.customPrompt.value = preset.prompt;
-    addLog(`Selected preset: ${preset.name}. Click "Start Try-On" to wear.`, "info");
+    
+    // Connect on Garment Select if mirror camera is running or out of standby
+    if (state.localStream || (elements.stagePlaceholder && elements.stagePlaceholder.classList.contains("hidden"))) {
+      addLog(`Selected preset: ${preset.name}. Connecting stream on-demand...`, "info");
+      await connectStream();
+    } else {
+      addLog(`Selected preset: ${preset.name}. Click "Start" to wear.`, "info");
+    }
   }
 }
 
@@ -847,6 +1032,13 @@ async function startGarmentScanner() {
     }
   }
 
+  // Suspend WebRTC during scanner to burn 0 credits while aligning
+  if (state.isConnected && !state.isPaused) {
+    state.wasConnectedBeforeScan = true;
+    pauseWebRTC(false);
+    addLog("Decart stream paused during garment scan (0 credits used).", "info");
+  }
+
   // 2. Attach live camera stream to scanner preview element
   if (elements.scannerLivePreview && state.localStream) {
     elements.scannerLivePreview.style.transform = state.isMirrored ? "scaleX(-1)" : "none";
@@ -1036,16 +1228,59 @@ function captureSnapshot() {
 function setupEventListeners() {
   console.log("[VTON] Wiring up event listeners...");
 
+  // Track user interaction for Smart Auto-Sleep
+  ['pointerdown', 'keydown', 'touchstart'].forEach(evt => {
+    window.addEventListener(evt, recordUserActivity, { passive: true });
+  });
+
   // Toggle Stream Button
   const toggleHandler = () => {
     if (state.isConnected) {
       disconnectStream();
     } else {
-      connectStream();
+      resumeWebRTC();
     }
   };
   if (elements.btnToggleStream) elements.btnToggleStream.addEventListener("click", toggleHandler);
-  if (elements.btnPlaceholderStart) elements.btnPlaceholderStart.addEventListener("click", toggleHandler);
+
+  // Standby Start Button: Activate local camera first to save credits while browsing
+  if (elements.btnPlaceholderStart) {
+    elements.btnPlaceholderStart.addEventListener("click", async () => {
+      try {
+        await getCameraStream();
+        if (elements.stagePlaceholder) elements.stagePlaceholder.classList.add("hidden");
+        addLog("Local mirror camera active (0 credits used). Select an outfit to wear.", "info");
+        showToast("Select an outfit from the left catalogue to try on!", "info");
+      } catch (err) {
+        showToast("Could not access camera: " + err.message, "error");
+      }
+    });
+  }
+
+  // Credit Saver: Pause / Resume Stream Button in HUD
+  if (elements.btnPauseStream) {
+    elements.btnPauseStream.addEventListener("click", () => {
+      if (state.isPaused) {
+        resumeWebRTC();
+      } else {
+        pauseWebRTC(false);
+      }
+    });
+  }
+
+  // Credit Saver: Resume from Idle Auto-Sleep Banner
+  if (elements.btnResumeIdle) {
+    elements.btnResumeIdle.addEventListener("click", () => {
+      resumeWebRTC();
+    });
+  }
+
+  // Credit Saver: Resume from Freeze Frame in Eco Snapshot mode
+  if (elements.btnUnfreezeStream) {
+    elements.btnUnfreezeStream.addEventListener("click", () => {
+      resumeWebRTC();
+    });
+  }
 
   // Store Mirror: Scan Held Garment triggers
   if (elements.btnScanGarment) elements.btnScanGarment.addEventListener("click", startGarmentScanner);
@@ -1208,6 +1443,14 @@ function setupEventListeners() {
       if (elements.toggleFastMode) state.fastMode = elements.toggleFastMode.checked;
       if (elements.selectCamera) state.selectedCameraId = elements.selectCamera.value;
       if (elements.selectMirror) state.mirrorMode = elements.selectMirror.value;
+      if (elements.selectTryOnMode) {
+        state.tryOnMode = elements.selectTryOnMode.value;
+        localStorage.setItem("mir_tryon_mode", state.tryOnMode);
+      }
+      if (elements.selectIdleTimeout) {
+        state.idleTimeoutSeconds = parseInt(elements.selectIdleTimeout.value, 10) || 0;
+        localStorage.setItem("mir_idle_timeout", String(state.idleTimeoutSeconds));
+      }
       if (elements.telemetrySpeed) elements.telemetrySpeed.textContent = state.fastMode ? "Fast Mode (2x)" : "Standard";
 
       state.client = null;
